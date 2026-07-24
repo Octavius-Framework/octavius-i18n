@@ -231,10 +231,16 @@ fun Project.registerGenerateI18nAccessorsTask(
                 logger.lifecycle("Generated: ${langFile.path}")
             }
 
-            // Generate Tr.kt (we use the first language as default)
-            val (defaultLang, defaultMap) = mergedByLang.entries.first()
+            // Generate Tr.kt (we use the first language as default language for runtime)
+            val defaultLang = mergedByLang.keys.first()
             val allLangs = mergedByLang.keys.toList()
-            val entries = parseTranslationMap(defaultMap)
+            
+            // Build a union of all translation maps to ensure ALL keys are generated
+            val unionMap = mutableMapOf<String, Any?>()
+            mergedByLang.values.forEach { langMap ->
+                mergeJsonMaps(unionMap, langMap)
+            }
+            val entries = parseTranslationMap(unionMap)
 
             val trGenerator = TrGenerator(targetPackage, objectName)
             val trCode = trGenerator.generate(entries, defaultLang, allLangs)
