@@ -15,14 +15,14 @@ dependencies {
 }
 
 registerGenerateI18nAccessorsTask(
-    coreProject = project,
+    targetProject = project,
     sourceProject = project,
     targetPackage = "org.example.i18n",
     objectName = "Tr"
 )
 
 registerGenerateI18nAccessorsTask(
-    coreProject = project,
+    targetProject = project,
     sourceProject = project(":feature"),
     targetPackage = "org.example.feature.i18n",
     objectName = "FeatureTr"

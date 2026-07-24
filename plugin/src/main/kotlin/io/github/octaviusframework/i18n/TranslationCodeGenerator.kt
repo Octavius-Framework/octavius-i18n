@@ -145,20 +145,26 @@ private class LanguageDataGenerator(private val packageName: String, private val
 
 
 /**
- * Registers the `generateI18nAccessors` task in the root project.
+ * Registers the translation generator task for the project.
  *
- * The task scans all modules for `i18n\*.json` files,
- * merges them in memory and generates:
- * - Translations{Lang}.kt - flat maps with data per language
- * - Tr.kt - registry + type-safe accessors
+ * This task scans for JSON translation files within the `sourceProject` and all its subprojects.
+ * It intelligently merges translations from all languages to ensure a complete union of keys,
+ * and generates type-safe Kotlin accessors in the `targetProject`.
  *
- * @param coreProject Core project where the files will be generated
- * @param targetPackage Package for the generated code
+ * Generated files (e.g., if objectName is "Tr" and languages are EN/PL):
+ * - `Tr.kt` - the main object containing type-safe accessors (e.g., `Tr.Users.active()`)
+ * - `TrTranslationsEn.kt` - internal data map for English
+ * - `TrTranslationsPl.kt` - internal data map for Polish
+ *
+ * @param targetProject The project where the Kotlin files will be generated and compiled. Defaults to the current project.
+ * @param sourceProject The project root to scan for translation files. Scans recursively. Defaults to rootProject.
+ * @param targetPackage The package name for the generated Kotlin files.
+ * @param objectName The name of the main generated Kotlin object (e.g., "Tr", "FeatureTr").
  */
 fun Project.registerGenerateI18nAccessorsTask(
-    coreProject: Project,
+    targetProject: Project = this,
     sourceProject: Project = rootProject,
-    targetPackage: String = "org.octavius.localization",
+    targetPackage: String = "io.github.octaviusframework.i18n.generated",
     objectName: String = "Tr"
 ): TaskProvider<*> {
     val taskName = "generateI18nAccessors$objectName"
@@ -166,7 +172,7 @@ fun Project.registerGenerateI18nAccessorsTask(
         group = "build"
         description = "Generates type-safe Kotlin accessors for translations ($objectName)."
 
-        val outputDir = coreProject.layout.buildDirectory.dir("generated/kotlin/commonMain")
+        val outputDir = targetProject.layout.buildDirectory.dir("generated/kotlin/commonMain")
         outputs.dir(outputDir)
 
         // Gather all translation files as inputs
