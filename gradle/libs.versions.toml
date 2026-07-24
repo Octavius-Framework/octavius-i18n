@@ -1,8 +1,8 @@
 [versions]
 kotlin = "2.4.0"
-gson = "2.14.0"
+kotlinx-serialization = "1.11.0"
 [libraries]
-gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 
 [plugins]
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

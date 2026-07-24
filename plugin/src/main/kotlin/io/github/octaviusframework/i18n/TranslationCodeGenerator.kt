@@ -1,7 +1,6 @@
 package io.github.octaviusframework.i18n
 
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
+import kotlinx.serialization.json.*
 import org.gradle.api.Project
 import org.gradle.api.tasks.TaskProvider
 import java.io.File
@@ -24,16 +23,13 @@ import java.nio.charset.StandardCharsets
  * Tr.currentLanguage = "en"
  * ```
  */
-
-/**
- * Parses a JSON map into a TranslationEntry tree.
- */
-private fun parseTranslationMap(map: Map<String, Any?>): Map<String, TranslationEntry> {
+private fun parseTranslationMap(map: Map<String, JsonElement>): Map<String, TranslationEntry> {
     val result = mutableMapOf<String, TranslationEntry>()
 
-    for ((key, value) in map) {
-        result[key] = when (value) {
-            is String -> {
+    for ((key, element) in map) {
+        result[key] = when (element) {
+            is JsonPrimitive -> {
+                val value = element.content
                 val params = PARAM_REGEX.findAll(value).map { it.groupValues[1].toInt() }.toList()
                 if (params.isNotEmpty()) {
                     TranslationEntry.Parameterized(value, params.max() + 1)
@@ -41,19 +37,16 @@ private fun parseTranslationMap(map: Map<String, Any?>): Map<String, Translation
                     TranslationEntry.Simple(value)
                 }
             }
-            is Map<*, *> -> {
-                @Suppress("UNCHECKED_CAST")
-                val childMap = value as Map<String, Any?>
-
+            is JsonObject -> {
                 // Check if it's a plural form
-                if (childMap.keys.all { it in PLURAL_KEYS } && childMap.values.all { it is String }) {
-                    @Suppress("UNCHECKED_CAST")
-                    TranslationEntry.Plural(childMap as Map<String, String>)
+                if (element.keys.all { it in PLURAL_KEYS } && element.values.all { it is JsonPrimitive && it.isString }) {
+                    val pluralForms = element.mapValues { (it.value as JsonPrimitive).content }
+                    TranslationEntry.Plural(pluralForms)
                 } else {
-                    TranslationEntry.Nested(parseTranslationMap(childMap))
+                    TranslationEntry.Nested(parseTranslationMap(element))
                 }
             }
-            else -> TranslationEntry.Simple(value?.toString() ?: "")
+            else -> TranslationEntry.Simple(element.toString())
         }
     }
 
@@ -181,9 +174,8 @@ fun Project.registerGenerateI18nAccessorsTask(
         }
 
         doLast {
-            val gson = Gson()
-            val mapType = object : TypeToken<Map<String, Any?>>() {}.type
-            val mergedByLang = mutableMapOf<String, MutableMap<String, Any?>>()
+            val jsonParser = Json { ignoreUnknownKeys = true }
+            val mergedByLang = mutableMapOf<String, MutableMap<String, JsonElement>>()
 
             // Scan all subprojects
             sourceProject.allprojects.forEach { subproject ->
@@ -194,9 +186,11 @@ fun Project.registerGenerateI18nAccessorsTask(
                         if (content.isNotBlank()) {
                             logger.info("Found translation for '$lang' in ${subproject.name}/${file.relativeTo(subproject.projectDir)}")
                             try {
-                                val sourceMap: Map<String, Any?> = gson.fromJson(content, mapType)
-                                val targetMap = mergedByLang.getOrPut(lang) { mutableMapOf() }
-                                mergeJsonMaps(targetMap, sourceMap)
+                                val sourceElement = jsonParser.parseToJsonElement(content)
+                                if (sourceElement is JsonObject) {
+                                    val targetMap = mergedByLang.getOrPut(lang) { mutableMapOf() }
+                                    mergeJsonElements(targetMap, sourceElement)
+                                }
                             } catch (e: Exception) {
                                 logger.error("Failed to parse translation file: ${file.path}", e)
                             }
@@ -236,9 +230,9 @@ fun Project.registerGenerateI18nAccessorsTask(
             val allLangs = mergedByLang.keys.toList()
             
             // Build a union of all translation maps to ensure ALL keys are generated
-            val unionMap = mutableMapOf<String, Any?>()
+            val unionMap = mutableMapOf<String, JsonElement>()
             mergedByLang.values.forEach { langMap ->
-                mergeJsonMaps(unionMap, langMap)
+                mergeJsonElements(unionMap, JsonObject(langMap))
             }
             val entries = parseTranslationMap(unionMap)
 

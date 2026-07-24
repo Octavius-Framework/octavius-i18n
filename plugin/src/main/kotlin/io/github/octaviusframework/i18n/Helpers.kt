@@ -1,5 +1,8 @@
 package io.github.octaviusframework.i18n
 
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+
 /**
  * Represents the type of a translation entry in JSON.
  */
@@ -19,7 +22,6 @@ internal sealed class TranslationEntry {
 
 internal val PLURAL_KEYS = setOf("_zero", "_one", "_two", "_few", "_many", "_other")
 internal val PARAM_REGEX = Regex("""\{(\d+)\}""")
-
 
 /**
  * Converts snake_case or kebab-case to PascalCase.
@@ -59,15 +61,13 @@ internal fun isKotlinKeyword(name: String): Boolean {
     return name in keywords
 }
 
-internal fun mergeJsonMaps(target: MutableMap<String, Any?>, source: Map<String, Any?>) {
+internal fun mergeJsonElements(target: MutableMap<String, JsonElement>, source: JsonObject) {
     for ((key, sourceValue) in source) {
         val targetValue = target[key]
-        if (sourceValue is Map<*, *> && targetValue is Map<*, *>) {
-            @Suppress("UNCHECKED_CAST")
-            val newTarget = (targetValue as Map<String, Any?>).toMutableMap()
-            @Suppress("UNCHECKED_CAST")
-            mergeJsonMaps(newTarget, sourceValue as Map<String, Any?>)
-            target[key] = newTarget
+        if (sourceValue is JsonObject && targetValue is JsonObject) {
+            val newTarget = targetValue.toMutableMap()
+            mergeJsonElements(newTarget, sourceValue)
+            target[key] = JsonObject(newTarget)
         } else {
             target[key] = sourceValue
         }
