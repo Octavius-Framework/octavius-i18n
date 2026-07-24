@@ -12,7 +12,7 @@ A type-safe, code-generated localization plugin. Write your translations once in
 - **Build-time code generation** — the `Tr` object is forged at compile time, not at runtime
 - **ICU-compliant plural forms** — `one`, `two`, `few`, `many`, `other`, `zero`
 - **Per-module translations** — each module carries its own `i18n/<lang>.json`
-- **Runtime language switching** — change `Tr.currentLanguage` and the legion regroups instantly
+- **Runtime language switching** — change `OctaviusI18n.currentLanguage` and the legion regroups instantly
 
 ---
 
@@ -21,7 +21,7 @@ A type-safe, code-generated localization plugin. Write your translations once in
 ```kotlin
 // build.gradle.kts
 plugins {
-    id("io.github.octaviusframework.i18n") version "1.0.0"
+    id("io.github.octaviusframework.i18n") version "0.9.6"
 }
 ```
 
@@ -69,8 +69,8 @@ Tr.Legion.Units.cohort(1)           // → "1 kohorta"
 Tr.Legion.Units.cohort(3)           // → "3 kohorty"
 Tr.Legion.Units.cohort(17)          // → "17 kohort"
 
-// Switch language at runtime
-Tr.currentLanguage = "en"
+// Switch language globally across all modules
+io.github.octaviusframework.i18n.core.OctaviusI18n.currentLanguage = "en"
 Tr.Legion.Orders.march()            // → "March!"
 ```
 
@@ -169,28 +169,43 @@ Tr.Legion.greeting("Kacper", 9)
 // → "Witaj, Kacper! Zwerbowano cię do 9 legionu."
 ```
 
+### Multiple Plurals in One Sentence (Composition)
+
+If your sentence depends on more than one pluralized number (e.g. *"5 men bought 2 apples"*), standard JSON localization requires splitting the sentence into smaller, manageable parts. This prevents a combinatorial explosion of keys and is exactly how Android string resources handle it natively.
+
+```json
+{
+  "Legion": {
+    "men": { "_one": "1 mężczyzna", "_other": "{0} mężczyzn" },
+    "apples": { "_one": "1 jabłko", "_other": "{0} jabłek" },
+    "purchased": "{0} kupiło {1}"
+  }
+}
+```
+
+Compose them in code:
+```kotlin
+Tr.Legion.purchased( Tr.Legion.men(5), Tr.Legion.apples(2) )
+// → "5 mężczyzn kupiło 2 jabłka"
+```
+
 ---
 
 ## Code Generation
 
-The `generateI18nAccessors` task scans all `i18n/*.json` files in the module and generates the `Tr` object. The primary language (default: first alphabetically, or configured explicitly) defines the accessor shape; other languages must match its structure or the build fails.
+The `generateI18nAccessors` task scans all `i18n/*.json` files in the module and generates the `Tr` object.
 
-```kotlin
-// build.gradle.kts
-octaviusI18n {
-    primaryLanguage = "pl"      // defines the Tr object structure
-    packageName = "com.example.i18n"
-}
-```
+### Bulletproof Union of Keys
+If a translator forgets to add a key to `de.json` but a developer added it to `en.json`, the build **will not fail** and the accessor will still be generated! The generator intelligently merges all keys from all language files into a single, comprehensive union. If the missing translation is requested at runtime, the library gracefully falls back to displaying the raw key (e.g. `"missing_key_name"`).
 
-The generated code is placed in your build directory and is ready to import — no manual maintenance required. *Caesar didn't write his own dispatches either.*
+The generated code delegates all formatting to the `OctaviusI18n` engine, guaranteeing seamless integration across massive multi-module projects without duplicating logic. *Caesar didn't write his own dispatches either.*
 
 ---
 
 ## Runtime Language Switching
 
 ```kotlin
-Tr.currentLanguage = "en"
+OctaviusI18n.currentLanguage = "en"
 ```
 
 The change takes effect immediately for all subsequent calls. Thread safety is your province to govern; the library does not impose synchronization.
