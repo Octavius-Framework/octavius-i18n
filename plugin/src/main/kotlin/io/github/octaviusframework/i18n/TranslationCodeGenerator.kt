@@ -118,7 +118,7 @@ private class LanguageDataGenerator(private val packageName: String) {
         builder.appendLine(" *")
         builder.appendLine(" * This file is auto-generated. Do not edit manually.")
         builder.appendLine(" */")
-        builder.appendLine("public object Translations$langPascal : $packageName.TranslationData {")
+        builder.appendLine("public object Translations$langPascal : io.github.octaviusframework.i18n.core.TranslationData {")
         builder.appendLine()
 
         // Simple translations
@@ -131,7 +131,7 @@ private class LanguageDataGenerator(private val packageName: String) {
         builder.appendLine()
 
         // Plural translations
-        builder.appendLine("    override val plural: kotlin.collections.Map<kotlin.String, $packageName.PluralForms> = mapOf(")
+        builder.appendLine("    override val plural: kotlin.collections.Map<kotlin.String, io.github.octaviusframework.i18n.core.PluralForms> = mapOf(")
         plural.entries.sortedBy { it.key }.forEachIndexed { index, (key, forms) ->
             val comma = if (index < plural.size - 1) "," else ""
             val zero = forms["_zero"]?.let { "\"${escapeString(it)}\"" } ?: "null"
@@ -140,7 +140,7 @@ private class LanguageDataGenerator(private val packageName: String) {
             val few = forms["_few"]?.let { "\"${escapeString(it)}\"" } ?: "null"
             val many = forms["_many"]?.let { "\"${escapeString(it)}\"" } ?: "null"
             val other = forms["_other"]?.let { "\"${escapeString(it)}\"" } ?: "\"$key\""
-            builder.appendLine("        \"$key\" to $packageName.PluralForms($zero, $one, $two, $few, $many, $other)$comma")
+            builder.appendLine("        \"$key\" to io.github.octaviusframework.i18n.core.PluralForms($zero, $one, $two, $few, $many, $other)$comma")
         }
         builder.appendLine("    )")
         builder.appendLine("}")
@@ -213,34 +213,7 @@ fun Project.registerGenerateI18nAccessorsTask(
             val packagePath = targetPackage.replace(".", "/")
             val outputDirFile = outputDir.get().asFile
 
-            // Generate TranslationData and PluralForms
-            val translationDataCode = """
-                package $targetPackage
-
-                /**
-                 * Represents plural forms for a given translation key.
-                 */
-                public data class PluralForms(
-                    val zero: kotlin.String?,
-                    val one: kotlin.String?,
-                    val two: kotlin.String?,
-                    val few: kotlin.String?,
-                    val many: kotlin.String?,
-                    val other: kotlin.String
-                )
-
-                /**
-                 * Interface for translation data of a specific language.
-                 */
-                public interface TranslationData {
-                    val simple: kotlin.collections.Map<kotlin.String, kotlin.String>
-                    val plural: kotlin.collections.Map<kotlin.String, PluralForms>
-                }
-            """.trimIndent()
-            val translationDataFile = File(outputDirFile, "$packagePath/TranslationData.kt")
-            translationDataFile.parentFile.mkdirs()
-            translationDataFile.writeText(translationDataCode, StandardCharsets.UTF_8)
-            logger.lifecycle("Generated: ${translationDataFile.path}")
+            // No longer generating TranslationData and PluralForms here as they are in the runtime library
 
             // Generate files for each language
             for ((lang, translationMap) in mergedByLang) {

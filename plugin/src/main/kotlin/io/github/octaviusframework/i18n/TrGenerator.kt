@@ -42,24 +42,18 @@ internal class TrGenerator(private val packageName: String, private val objectNa
 
         // Registry and currentLanguage
         appendLine()
-        appendLine("private val registry = mutableMapOf<kotlin.String, $packageName.TranslationData>()")
+        appendLine("private val registry = mutableMapOf<kotlin.String, io.github.octaviusframework.i18n.core.TranslationData>()")
         appendLine()
-        appendLine("public interface PluralRule {")
-        indentLevel++
-        appendLine("public fun selectForm(count: kotlin.Int): kotlin.String")
-        appendLine("public fun selectForm(count: kotlin.Double): kotlin.String")
-        indentLevel--
-        appendLine("}")
         appendLine()
-        appendLine("private val pluralRules = mutableMapOf<kotlin.String, PluralRule>(")
+        appendLine("private val pluralRules = mutableMapOf<kotlin.String, io.github.octaviusframework.i18n.core.PluralRule>(")
         indentLevel++
-        appendLine("\"en\" to object : PluralRule {")
+        appendLine("\"en\" to object : io.github.octaviusframework.i18n.core.PluralRule {")
         indentLevel++
         appendLine("override fun selectForm(count: kotlin.Int) = if (count == 1) \"one\" else \"other\"")
         appendLine("override fun selectForm(count: kotlin.Double) = \"other\"")
         indentLevel--
         appendLine("},")
-        appendLine("\"pl\" to object : PluralRule {")
+        appendLine("\"pl\" to object : io.github.octaviusframework.i18n.core.PluralRule {")
         indentLevel++
         appendLine("override fun selectForm(count: kotlin.Int) = when {")
         indentLevel++
@@ -80,14 +74,14 @@ internal class TrGenerator(private val packageName: String, private val objectNa
 
         // Register functions
         appendLine("/** Register translation data for a language */")
-        appendLine("public fun register(lang: kotlin.String, data: $packageName.TranslationData) {")
+        appendLine("public fun register(lang: kotlin.String, data: io.github.octaviusframework.i18n.core.TranslationData) {")
         indentLevel++
         appendLine("registry[lang] = data")
         indentLevel--
         appendLine("}")
         appendLine()
         appendLine("/** Register a plural rule logic for a specific language */")
-        appendLine("public fun registerPluralRule(lang: kotlin.String, rule: PluralRule) {")
+        appendLine("public fun registerPluralRule(lang: kotlin.String, rule: io.github.octaviusframework.i18n.core.PluralRule) {")
         indentLevel++
         appendLine("pluralRules[lang] = rule")
         indentLevel--
@@ -106,7 +100,7 @@ internal class TrGenerator(private val packageName: String, private val objectNa
         appendLine()
 
         // Private data accessor
-        appendLine("private val data: $packageName.TranslationData")
+        appendLine("private val data: io.github.octaviusframework.i18n.core.TranslationData")
         indentLevel++
         appendLine("get() = registry[currentLanguage] ?: error(\"Language \\\"${'$'}currentLanguage\\\" not registered\")")
         indentLevel--
@@ -125,7 +119,7 @@ internal class TrGenerator(private val packageName: String, private val objectNa
         indentLevel++
         appendLine("val forms = data.plural[key] ?: return key")
         appendLine("if (count == 0 && forms.zero != null) return formatString(forms.zero, count, *args)")
-        appendLine("val rule = pluralRules[currentLanguage] ?: pluralRules[\"en\"] ?: object : PluralRule { override fun selectForm(count: kotlin.Int) = \"other\"; override fun selectForm(count: kotlin.Double) = \"other\" }")
+        appendLine("val rule = pluralRules[currentLanguage] ?: pluralRules[\"en\"] ?: object : io.github.octaviusframework.i18n.core.PluralRule { override fun selectForm(count: kotlin.Int) = \"other\"; override fun selectForm(count: kotlin.Double) = \"other\" }")
         appendLine("val formName = rule.selectForm(count)")
         appendLine("val formTemplate = when (formName) {")
         indentLevel++
@@ -146,7 +140,7 @@ internal class TrGenerator(private val packageName: String, private val objectNa
         indentLevel++
         appendLine("val forms = data.plural[key] ?: return key")
         appendLine("if (count == 0.0 && forms.zero != null) return formatString(forms.zero, count, *args)")
-        appendLine("val rule = pluralRules[currentLanguage] ?: pluralRules[\"en\"] ?: object : PluralRule { override fun selectForm(count: kotlin.Int) = \"other\"; override fun selectForm(count: kotlin.Double) = \"other\" }")
+        appendLine("val rule = pluralRules[currentLanguage] ?: pluralRules[\"en\"] ?: object : io.github.octaviusframework.i18n.core.PluralRule { override fun selectForm(count: kotlin.Int) = \"other\"; override fun selectForm(count: kotlin.Double) = \"other\" }")
         appendLine("val formName = rule.selectForm(count)")
         appendLine("val formTemplate = when (formName) {")
         indentLevel++
