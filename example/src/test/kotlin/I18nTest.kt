@@ -1,13 +1,13 @@
 package org.example.i18n
 
-import org.junit.jupiter.api.Test
+import io.github.octaviusframework.i18n.core.OctaviusI18nimport org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 
 class I18nTest {
 
     @Test
     fun `test english translations`() {
-        Tr.currentLanguage = "en"
+        OctaviusI18n.currentLanguage = "en"
         
         assertEquals("Hello", Tr.hello())
         assertEquals("Welcome Alice", Tr.welcome("Alice"))
@@ -19,7 +19,7 @@ class I18nTest {
 
     @Test
     fun `test polish translations`() {
-        Tr.currentLanguage = "pl"
+        OctaviusI18n.currentLanguage = "pl"
         
         assertEquals("Cześć", Tr.hello())
         assertEquals("Witaj Bob", Tr.welcome("Bob"))

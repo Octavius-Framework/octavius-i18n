@@ -26,66 +26,21 @@ internal class TrGenerator(private val packageName: String, private val objectNa
         appendLine("package $packageName")
         appendLine()
         appendLine("/**")
-        appendLine(" * Type-safe accessors for translations with runtime language switching.")
+        appendLine(" * Type-safe accessors for translations.")
         appendLine(" *")
         appendLine(" * This file is auto-generated. Do not edit manually.")
         appendLine(" *")
         appendLine(" * Usage:")
         appendLine(" * ```kotlin")
         appendLine(" * $objectName.Action.save()           // Get translation")
-        appendLine(" * $objectName.currentLanguage = \"en\"  // Switch language")
-        appendLine(" * $objectName.register(\"de\", TranslationsDe)  // Register new language")
+        appendLine(" * io.github.octaviusframework.i18n.core.OctaviusI18n.currentLanguage = \"en\"  // Switch language globally")
         appendLine(" * ```")
         appendLine(" */")
         appendLine("public object $objectName {")
         indentLevel++
 
-        // Registry and currentLanguage
         appendLine()
-        appendLine("private val registry = mutableMapOf<kotlin.String, io.github.octaviusframework.i18n.core.TranslationData>()")
-        appendLine()
-        appendLine()
-        appendLine("private val pluralRules = mutableMapOf<kotlin.String, io.github.octaviusframework.i18n.core.PluralRule>(")
-        indentLevel++
-        appendLine("\"en\" to object : io.github.octaviusframework.i18n.core.PluralRule {")
-        indentLevel++
-        appendLine("override fun selectForm(count: kotlin.Int) = if (count == 1) \"one\" else \"other\"")
-        appendLine("override fun selectForm(count: kotlin.Double) = \"other\"")
-        indentLevel--
-        appendLine("},")
-        appendLine("\"pl\" to object : io.github.octaviusframework.i18n.core.PluralRule {")
-        indentLevel++
-        appendLine("override fun selectForm(count: kotlin.Int) = when {")
-        indentLevel++
-        appendLine("count == 1 -> \"one\"")
-        appendLine("count % 10 in 2..4 && count % 100 !in 12..14 -> \"few\"")
-        appendLine("else -> \"many\"")
-        indentLevel--
-        appendLine("}")
-        appendLine("override fun selectForm(count: kotlin.Double) = \"other\"")
-        indentLevel--
-        appendLine("}")
-        indentLevel--
-        appendLine(")")
-        appendLine()
-        appendLine("/** Currently active language */")
-        appendLine("public var currentLanguage: kotlin.String = \"$defaultLang\"")
-        appendLine()
-
-        // Register functions
-        appendLine("/** Register translation data for a language */")
-        appendLine("public fun register(lang: kotlin.String, data: io.github.octaviusframework.i18n.core.TranslationData) {")
-        indentLevel++
-        appendLine("registry[lang] = data")
-        indentLevel--
-        appendLine("}")
-        appendLine()
-        appendLine("/** Register a plural rule logic for a specific language */")
-        appendLine("public fun registerPluralRule(lang: kotlin.String, rule: io.github.octaviusframework.i18n.core.PluralRule) {")
-        indentLevel++
-        appendLine("pluralRules[lang] = rule")
-        indentLevel--
-        appendLine("}")
+        appendLine("private val ___registry = mutableMapOf<kotlin.String, io.github.octaviusframework.i18n.core.TranslationData>()")
         appendLine()
 
         // Init block
@@ -93,82 +48,22 @@ internal class TrGenerator(private val packageName: String, private val objectNa
         indentLevel++
         allLangs.forEach { lang ->
             val langPascal = toPascalCase(lang)
-            appendLine("register(\"$lang\", Translations$langPascal)")
+            appendLine("___registry[\"$lang\"] = Translations$langPascal")
         }
         indentLevel--
         appendLine("}")
         appendLine()
 
         // Private data accessor
-        appendLine("private val data: io.github.octaviusframework.i18n.core.TranslationData")
+        appendLine("private val ___data: io.github.octaviusframework.i18n.core.TranslationData")
         indentLevel++
-        appendLine("get() = registry[currentLanguage] ?: error(\"Language \\\"${'$'}currentLanguage\\\" not registered\")")
-        indentLevel--
-        appendLine()
-
-        // Lookup functions
-        appendLine("private fun lookup(key: kotlin.String, vararg args: kotlin.Any): kotlin.String {")
+        appendLine("get() {")
         indentLevel++
-        appendLine("val template = data.simple[key] ?: return key")
-        appendLine("return formatString(template, *args)")
+        appendLine("val lang = io.github.octaviusframework.i18n.core.OctaviusI18n.currentLanguage")
+        appendLine("return ___registry[lang] ?: error(\"Language \\\"${'$'}lang\\\" not registered in this module\")")
         indentLevel--
         appendLine("}")
-        appendLine()
-
-        appendLine("private fun lookupPlural(key: kotlin.String, count: kotlin.Int, vararg args: kotlin.Any): kotlin.String {")
-        indentLevel++
-        appendLine("val forms = data.plural[key] ?: return key")
-        appendLine("if (count == 0) forms.zero?.let { return formatString(it, count, *args) }")
-        appendLine("val rule = pluralRules[currentLanguage] ?: pluralRules[\"en\"] ?: object : io.github.octaviusframework.i18n.core.PluralRule { override fun selectForm(count: kotlin.Int) = \"other\"; override fun selectForm(count: kotlin.Double) = \"other\" }")
-        appendLine("val formName = rule.selectForm(count)")
-        appendLine("val formTemplate = when (formName) {")
-        indentLevel++
-        appendLine("\"zero\" -> forms.zero")
-        appendLine("\"one\" -> forms.one")
-        appendLine("\"two\" -> forms.two")
-        appendLine("\"few\" -> forms.few")
-        appendLine("\"many\" -> forms.many")
-        appendLine("else -> forms.other")
         indentLevel--
-        appendLine("} ?: forms.other")
-        appendLine("return formatString(formTemplate, count, *args)")
-        indentLevel--
-        appendLine("}")
-        appendLine()
-
-        appendLine("private fun lookupPlural(key: kotlin.String, count: kotlin.Double, vararg args: kotlin.Any): kotlin.String {")
-        indentLevel++
-        appendLine("val forms = data.plural[key] ?: return key")
-        appendLine("if (count == 0.0) forms.zero?.let { return formatString(it, count, *args) }")
-        appendLine("val rule = pluralRules[currentLanguage] ?: pluralRules[\"en\"] ?: object : io.github.octaviusframework.i18n.core.PluralRule { override fun selectForm(count: kotlin.Int) = \"other\"; override fun selectForm(count: kotlin.Double) = \"other\" }")
-        appendLine("val formName = rule.selectForm(count)")
-        appendLine("val formTemplate = when (formName) {")
-        indentLevel++
-        appendLine("\"zero\" -> forms.zero")
-        appendLine("\"one\" -> forms.one")
-        appendLine("\"two\" -> forms.two")
-        appendLine("\"few\" -> forms.few")
-        appendLine("\"many\" -> forms.many")
-        appendLine("else -> forms.other")
-        indentLevel--
-        appendLine("} ?: forms.other")
-        appendLine("return formatString(formTemplate, count, *args)")
-        indentLevel--
-        appendLine("}")
-        appendLine()
-
-        appendLine("private fun formatString(template: kotlin.String, vararg args: kotlin.Any): kotlin.String {")
-        indentLevel++
-        appendLine("if (args.isEmpty()) return template")
-        appendLine("var result = template")
-        appendLine("args.forEachIndexed { index, arg ->")
-        indentLevel++
-        appendLine("result = result.replace(\"{${'$'}index}\", arg.toString())")
-        indentLevel--
-        appendLine("}")
-        appendLine("return result")
-        indentLevel--
-        appendLine("}")
         appendLine()
 
         // Type-safe accessors
@@ -191,7 +86,7 @@ internal class TrGenerator(private val packageName: String, private val objectNa
                 is TranslationEntry.Simple -> {
                     val funcName = escapeName(toCamelCase(key))
                     appendLine("/** `$fullKey` */")
-                    appendLine("public fun $funcName(): kotlin.String = lookup(\"$fullKey\")")
+                    appendLine("public fun $funcName(): kotlin.String = io.github.octaviusframework.i18n.core.OctaviusI18n.lookup(___data, \"$fullKey\")")
                     appendLine()
                 }
 
@@ -200,7 +95,7 @@ internal class TrGenerator(private val packageName: String, private val objectNa
                     val params = (0 until entry.paramCount).joinToString(", ") { "arg$it: kotlin.Any" }
                     val args = (0 until entry.paramCount).joinToString(", ") { "arg$it" }
                     appendLine("/** `$fullKey` - Template: `${entry.value}` */")
-                    appendLine("public fun $funcName($params): kotlin.String = lookup(\"$fullKey\", $args)")
+                    appendLine("public fun $funcName($params): kotlin.String = io.github.octaviusframework.i18n.core.OctaviusI18n.lookup(___data, \"$fullKey\", $args)")
                     appendLine()
                 }
 
@@ -218,14 +113,14 @@ internal class TrGenerator(private val packageName: String, private val objectNa
                         val params = (1..maxParam).joinToString(", ") { "arg$it: kotlin.Any" }
                         val args = (1..maxParam).joinToString(", ") { "arg$it" }
                         appendLine("/** `$fullKey` (plural) */")
-                        appendLine("public fun $funcName(count: kotlin.Int, $params): kotlin.String = lookupPlural(\"$fullKey\", count, $args)")
+                        appendLine("public fun $funcName(count: kotlin.Int, $params): kotlin.String = io.github.octaviusframework.i18n.core.OctaviusI18n.lookupPlural(___data, io.github.octaviusframework.i18n.core.OctaviusI18n.currentLanguage, \"$fullKey\", count, $args)")
                         appendLine("/** `$fullKey` (plural - fraction) */")
-                        appendLine("public fun $funcName(count: kotlin.Double, $params): kotlin.String = lookupPlural(\"$fullKey\", count, $args)")
+                        appendLine("public fun $funcName(count: kotlin.Double, $params): kotlin.String = io.github.octaviusframework.i18n.core.OctaviusI18n.lookupPlural(___data, io.github.octaviusframework.i18n.core.OctaviusI18n.currentLanguage, \"$fullKey\", count, $args)")
                     } else {
                         appendLine("/** `$fullKey` (plural) */")
-                        appendLine("public fun $funcName(count: kotlin.Int): kotlin.String = lookupPlural(\"$fullKey\", count)")
+                        appendLine("public fun $funcName(count: kotlin.Int): kotlin.String = io.github.octaviusframework.i18n.core.OctaviusI18n.lookupPlural(___data, io.github.octaviusframework.i18n.core.OctaviusI18n.currentLanguage, \"$fullKey\", count)")
                         appendLine("/** `$fullKey` (plural - fraction) */")
-                        appendLine("public fun $funcName(count: kotlin.Double): kotlin.String = lookupPlural(\"$fullKey\", count)")
+                        appendLine("public fun $funcName(count: kotlin.Double): kotlin.String = io.github.octaviusframework.i18n.core.OctaviusI18n.lookupPlural(___data, io.github.octaviusframework.i18n.core.OctaviusI18n.currentLanguage, \"$fullKey\", count)")
                     }
                     appendLine()
                 }
