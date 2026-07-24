@@ -6,6 +6,21 @@
     "count": {
       "_one": "{0} user",
       "_other": "{0} users"
+    },
+    "purchased": {
+      "_one": "{1} bought {0} item",
+      "_other": "{1} bought {0} items"
     }
+  },
+  "composition": {
+    "men": {
+      "_one": "1 man",
+      "_other": "{0} men"
+    },
+    "apples": {
+      "_one": "1 apple",
+      "_other": "{0} apples"
+    },
+    "sentence": "{0} bought {1}"
   }
 }

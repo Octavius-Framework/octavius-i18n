@@ -102,8 +102,8 @@ internal class TrGenerator(private val packageName: String, private val objectNa
                 is TranslationEntry.Plural -> {
                     val funcName = escapeName(toCamelCase(key))
                     // Check if plural forms have parameters (besides {0} which is count)
-                    val sampleForm = entry.forms.values.firstOrNull() ?: ""
-                    val extraParams = PARAM_REGEX.findAll(sampleForm)
+                    val allForms = entry.forms.values.joinToString(" ")
+                    val extraParams = PARAM_REGEX.findAll(allForms)
                         .map { it.groupValues[1].toInt() }
                         .filter { it > 0 }
                         .toList()

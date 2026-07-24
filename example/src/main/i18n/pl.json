@@ -8,6 +8,27 @@
       "_few": "{0} użytkowników",
       "_many": "{0} użytkowników",
       "_other": "{0} użytkowników"
+    },
+    "purchased": {
+      "_one": "{1} kupił {0} przedmiot",
+      "_few": "{1} kupił {0} przedmioty",
+      "_many": "{1} kupił {0} przedmiotów",
+      "_other": "{1} kupił {0} przedmiotów"
     }
+  },
+  "composition": {
+    "men": {
+      "_one": "1 mężczyzna",
+      "_few": "{0} mężczyzn",
+      "_many": "{0} mężczyzn",
+      "_other": "{0} mężczyzn"
+    },
+    "apples": {
+      "_one": "1 jabłko",
+      "_few": "{0} jabłka",
+      "_many": "{0} jabłek",
+      "_other": "{0} jabłek"
+    },
+    "sentence": "{0} kupiło {1}"
   }
 }
