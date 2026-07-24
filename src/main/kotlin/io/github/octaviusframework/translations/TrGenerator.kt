@@ -2,7 +2,7 @@ package io.github.octaviusframework.translations
 
 
 /**
- * Generuje główny plik Tr.kt z registry i type-safe accessorami.
+ * Generates the main Tr.kt file with registry and type-safe accessors.
  */
 internal class TrGenerator(private val packageName: String, private val objectName: String) {
     private val builder = StringBuilder()
@@ -40,7 +40,7 @@ internal class TrGenerator(private val packageName: String, private val objectNa
         appendLine("public object $objectName {")
         indentLevel++
 
-        // Registry i currentLanguage
+        // Registry and currentLanguage
         appendLine()
         appendLine("private val registry = mutableMapOf<kotlin.String, $packageName.TranslationData>()")
         appendLine()
@@ -212,7 +212,7 @@ internal class TrGenerator(private val packageName: String, private val objectNa
 
                 is TranslationEntry.Plural -> {
                     val funcName = escapeName(toCamelCase(key))
-                    // Sprawdź czy formy pluralne mają parametry (poza {0} który jest count)
+                    // Check if plural forms have parameters (besides {0} which is count)
                     val sampleForm = entry.forms.values.firstOrNull() ?: ""
                     val extraParams = PARAM_REGEX.findAll(sampleForm)
                         .map { it.groupValues[1].toInt() }

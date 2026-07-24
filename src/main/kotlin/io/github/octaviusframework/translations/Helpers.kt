@@ -1,19 +1,19 @@
 package io.github.octaviusframework.translations
 
 /**
- * Reprezentuje typ wpisu w JSON tłumaczeń.
+ * Represents the type of a translation entry in JSON.
  */
 internal sealed class TranslationEntry {
-    /** Prosty tekst bez parametrów */
+    /** Simple text without parameters */
     data class Simple(val value: String) : TranslationEntry()
 
-    /** Tekst z parametrami {0}, {1}, ... */
+    /** Text with parameters {0}, {1}, ... */
     data class Parameterized(val value: String, val paramCount: Int) : TranslationEntry()
 
-    /** Forma pluralna (one/few/many) */
+    /** Plural form (one/few/many) */
     data class Plural(val forms: Map<String, String>) : TranslationEntry()
 
-    /** Zagnieżdżony obiekt */
+    /** Nested object */
     data class Nested(val children: Map<String, TranslationEntry>) : TranslationEntry()
 }
 
@@ -22,7 +22,7 @@ internal val PARAM_REGEX = Regex("""\{(\d+)\}""")
 
 
 /**
- * Konwertuje snake_case lub kebab-case na PascalCase.
+ * Converts snake_case or kebab-case to PascalCase.
  */
 internal fun toPascalCase(input: String): String {
     return input.split("_", "-")
@@ -32,7 +32,7 @@ internal fun toPascalCase(input: String): String {
 }
 
 /**
- * Konwertuje string na camelCase (pierwsza litera mała).
+ * Converts a string to camelCase (first letter lowercase).
  */
 internal fun toCamelCase(input: String): String {
     val pascal = toPascalCase(input)
@@ -40,14 +40,14 @@ internal fun toCamelCase(input: String): String {
 }
 
 /**
- * Escapuje nazwę jeśli jest słowem kluczowym.
+ * Escapes the name if it is a Kotlin keyword.
  */
 internal fun escapeName(name: String): String {
     return if (isKotlinKeyword(name)) "`$name`" else name
 }
 
 /**
- * Sprawdza czy nazwa jest zarezerwowanym słowem kluczowym Kotlin.
+ * Checks if the name is a reserved Kotlin keyword.
  */
 internal fun isKotlinKeyword(name: String): Boolean {
     val keywords = setOf(

@@ -8,25 +8,25 @@ import java.io.File
 import java.nio.charset.StandardCharsets
 
 /**
- * Generuje type-safe klasy Kotlin na podstawie plików tłumaczeń JSON.
+ * Generates type-safe Kotlin classes from JSON translation files.
  *
- * Generowane pliki:
- * - `Translations{Lang}.kt` - płaskie mapy z tłumaczeniami per język
+ * Generated files:
+ * - `Translations{Lang}.kt` - flat maps with translations per language
  * - `Tr.kt` - registry pattern + type-safe accessors
  *
- * Przykład użycia wygenerowanego kodu:
+ * Example usage of generated code:
  * ```kotlin
- * Tr.Action.save()              // zamiast T.get("action.save")
- * Tr.Form.Actions.itemLabel(1)  // zamiast T.get("form.actions.itemLabel", 1)
- * Tr.Games.Form.category(5)     // zamiast T.getPlural("games.form.category", 5)
+ * Tr.Action.save()              // instead of T.get("action.save")
+ * Tr.Form.Actions.itemLabel(1)  // instead of T.get("form.actions.itemLabel", 1)
+ * Tr.Games.Form.category(5)     // instead of T.getPlural("games.form.category", 5)
  *
- * // Zmiana języka w runtime
+ * // Runtime language switching
  * Tr.currentLanguage = "en"
  * ```
  */
 
 /**
- * Parsuje mapę JSON do drzewa TranslationEntry.
+ * Parses a JSON map into a TranslationEntry tree.
  */
 private fun parseTranslationMap(map: Map<String, Any?>): Map<String, TranslationEntry> {
     val result = mutableMapOf<String, TranslationEntry>()
@@ -45,7 +45,7 @@ private fun parseTranslationMap(map: Map<String, Any?>): Map<String, Translation
                 @Suppress("UNCHECKED_CAST")
                 val childMap = value as Map<String, Any?>
 
-                // Sprawdź czy to forma pluralna
+                // Check if it's a plural form
                 if (childMap.keys.all { it in PLURAL_KEYS } && childMap.values.all { it is String }) {
                     @Suppress("UNCHECKED_CAST")
                     TranslationEntry.Plural(childMap as Map<String, String>)
@@ -61,7 +61,7 @@ private fun parseTranslationMap(map: Map<String, Any?>): Map<String, Translation
 }
 
 /**
- * Spłaszcza drzewo tłumaczeń do płaskich map.
+ * Flattens the translation tree into flat maps.
  */
 private fun flattenTranslations(
     entries: Map<String, TranslationEntry>,
@@ -89,7 +89,7 @@ private fun flattenTranslations(
 }
 
 /**
- * Escapuje string do użycia w kodzie Kotlin.
+ * Escapes a string for use in Kotlin code.
  */
 private fun escapeString(s: String): String {
     return s.replace("\\", "\\\\")
@@ -101,7 +101,7 @@ private fun escapeString(s: String): String {
 }
 
 /**
- * Generuje plik z danymi tłumaczeń dla konkretnego języka.
+ * Generates a file with translation data for a specific language.
  */
 private class LanguageDataGenerator(private val packageName: String) {
 
@@ -151,15 +151,15 @@ private class LanguageDataGenerator(private val packageName: String) {
 
 
 /**
- * Rejestruje task `generateTranslationAccessors` w projekcie root.
+ * Registers the `generateTranslationAccessors` task in the root project.
  *
- * Task skanuje wszystkie moduły w poszukiwaniu plików translations_*.json,
- * merguje je w pamięci i generuje:
- * - Translations{Lang}.kt - płaskie mapy z danymi per język
+ * The task scans all modules for translations_*.json files,
+ * merges them in memory and generates:
+ * - Translations{Lang}.kt - flat maps with data per language
  * - Tr.kt - registry + type-safe accessors
  *
- * @param coreProject Projekt core gdzie zostaną wygenerowane pliki
- * @param targetPackage Package dla wygenerowanego kodu
+ * @param coreProject Core project where the files will be generated
+ * @param targetPackage Package for the generated code
  */
 fun Project.registerGenerateTranslationAccessorsTask(
     coreProject: Project,
@@ -174,9 +174,9 @@ fun Project.registerGenerateTranslationAccessorsTask(
         val outputDir = coreProject.layout.buildDirectory.dir("generated/kotlin/commonMain")
         outputs.dir(outputDir)
 
-        // Zbieramy wszystkie pliki translations jako inputy
+        // Gather all translation files as inputs
         sourceProject.allprojects.forEach { sub ->
-            // Użyj fileTree aby śledzić tylko jsony
+            // Use fileTree to track only jsons
             inputs.files(sub.fileTree("src") { include("**/translations_*.json") })
         }
 
@@ -185,7 +185,7 @@ fun Project.registerGenerateTranslationAccessorsTask(
             val mapType = object : TypeToken<Map<String, Any?>>() {}.type
             val mergedByLang = mutableMapOf<String, MutableMap<String, Any?>>()
 
-            // Skanujemy wszystkie podprojekty
+            // Scan all subprojects
             sourceProject.allprojects.forEach { subproject ->
                 subproject.file("src").walk().forEach { file ->
                     if (file.isFile && file.name.startsWith("translations_") && file.name.endsWith(".json")) {
@@ -213,12 +213,12 @@ fun Project.registerGenerateTranslationAccessorsTask(
             val packagePath = targetPackage.replace(".", "/")
             val outputDirFile = outputDir.get().asFile
 
-            // Generuj TranslationData i PluralForms
+            // Generate TranslationData and PluralForms
             val translationDataCode = """
                 package $targetPackage
 
                 /**
-                 * Reprezentuje formy pluralne dla danego klucza tłumaczenia.
+                 * Represents plural forms for a given translation key.
                  */
                 public data class PluralForms(
                     val zero: kotlin.String?,
@@ -230,7 +230,7 @@ fun Project.registerGenerateTranslationAccessorsTask(
                 )
 
                 /**
-                 * Interfejs dla danych tłumaczeń konkretnego języka.
+                 * Interface for translation data of a specific language.
                  */
                 public interface TranslationData {
                     val simple: kotlin.collections.Map<kotlin.String, kotlin.String>
@@ -242,14 +242,14 @@ fun Project.registerGenerateTranslationAccessorsTask(
             translationDataFile.writeText(translationDataCode, StandardCharsets.UTF_8)
             logger.lifecycle("Generated: ${translationDataFile.path}")
 
-            // Generuj pliki dla każdego języka
+            // Generate files for each language
             for ((lang, translationMap) in mergedByLang) {
                 logger.lifecycle("Generating translations for language: $lang")
 
                 val entries = parseTranslationMap(translationMap)
                 val (simpleMap, pluralMap) = flattenTranslations(entries)
 
-                // Generuj Translations{Lang}.kt
+                // Generate Translations{Lang}.kt
                 val langGenerator = LanguageDataGenerator(targetPackage)
                 val langCode = langGenerator.generate(lang, simpleMap, pluralMap)
                 val langFile = File(outputDirFile, "$packagePath/Translations${toPascalCase(lang)}.kt")
@@ -258,7 +258,7 @@ fun Project.registerGenerateTranslationAccessorsTask(
                 logger.lifecycle("Generated: ${langFile.path}")
             }
 
-            // Generuj Tr.kt (używamy pierwszego języka jako domyślnego)
+            // Generate Tr.kt (we use the first language as default)
             val (defaultLang, defaultMap) = mergedByLang.entries.first()
             val allLangs = mergedByLang.keys.toList()
             val entries = parseTranslationMap(defaultMap)
@@ -269,7 +269,7 @@ fun Project.registerGenerateTranslationAccessorsTask(
             trFile.writeText(trCode, StandardCharsets.UTF_8)
             logger.lifecycle("Generated: ${trFile.path}")
 
-            // Statystyki
+            // Statistics
             fun countFunctions(entries: Map<String, TranslationEntry>): Int {
                 return entries.values.sumOf { entry ->
                     when (entry) {
