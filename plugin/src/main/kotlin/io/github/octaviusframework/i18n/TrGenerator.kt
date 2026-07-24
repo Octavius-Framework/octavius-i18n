@@ -118,7 +118,7 @@ internal class TrGenerator(private val packageName: String, private val objectNa
         appendLine("private fun lookupPlural(key: kotlin.String, count: kotlin.Int, vararg args: kotlin.Any): kotlin.String {")
         indentLevel++
         appendLine("val forms = data.plural[key] ?: return key")
-        appendLine("if (count == 0 && forms.zero != null) return formatString(forms.zero, count, *args)")
+        appendLine("if (count == 0) forms.zero?.let { return formatString(it, count, *args) }")
         appendLine("val rule = pluralRules[currentLanguage] ?: pluralRules[\"en\"] ?: object : io.github.octaviusframework.i18n.core.PluralRule { override fun selectForm(count: kotlin.Int) = \"other\"; override fun selectForm(count: kotlin.Double) = \"other\" }")
         appendLine("val formName = rule.selectForm(count)")
         appendLine("val formTemplate = when (formName) {")
@@ -139,7 +139,7 @@ internal class TrGenerator(private val packageName: String, private val objectNa
         appendLine("private fun lookupPlural(key: kotlin.String, count: kotlin.Double, vararg args: kotlin.Any): kotlin.String {")
         indentLevel++
         appendLine("val forms = data.plural[key] ?: return key")
-        appendLine("if (count == 0.0 && forms.zero != null) return formatString(forms.zero, count, *args)")
+        appendLine("if (count == 0.0) forms.zero?.let { return formatString(it, count, *args) }")
         appendLine("val rule = pluralRules[currentLanguage] ?: pluralRules[\"en\"] ?: object : io.github.octaviusframework.i18n.core.PluralRule { override fun selectForm(count: kotlin.Int) = \"other\"; override fun selectForm(count: kotlin.Double) = \"other\" }")
         appendLine("val formName = rule.selectForm(count)")
         appendLine("val formTemplate = when (formName) {")

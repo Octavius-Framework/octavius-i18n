@@ -1,0 +1,13 @@
+{
+  "hello": "Cześć",
+  "welcome": "Witaj {0}",
+  "users": {
+    "active": "Aktywni użytkownicy",
+    "count": {
+      "_one": "{0} użytkownik",
+      "_few": "{0} użytkowników",
+      "_many": "{0} użytkowników",
+      "_other": "{0} użytkowników"
+    }
+  }
+}

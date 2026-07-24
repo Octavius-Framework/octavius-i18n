@@ -17,6 +17,7 @@ dependencies {
     implementation(libs.gson)
 }
 
+
 gradlePlugin {
     plugins {
         create("i18n") {

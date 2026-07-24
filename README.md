@@ -1,4 +1,4 @@
-# Octavius Translations
+# Octavius I18n
 
 > *"Divide et impera"* — and so, translations are divided by module, ruled by type safety.
 
@@ -78,7 +78,7 @@ Tr.Legion.Orders.march()            // → "March!"
 
 ## ICU Plural Forms
 
-Octavius Translations follows the [Unicode CLDR plural rules](https://cldr.unicode.org/index/cldr-spec/plural-rules). Plural keys available for use in JSON:
+Octavius I18n follows the [Unicode CLDR plural rules](https://cldr.unicode.org/index/cldr-spec/plural-rules). Plural keys available for use in JSON:
 
 | Key       | Meaning                                                                 | Example (Polish)     |
 |-----------|-------------------------------------------------------------------------|----------------------|

@@ -1,0 +1,11 @@
+{
+  "hello": "Hello",
+  "welcome": "Welcome {0}",
+  "users": {
+    "active": "Active users",
+    "count": {
+      "_one": "{0} user",
+      "_other": "{0} users"
+    }
+  }
+}
