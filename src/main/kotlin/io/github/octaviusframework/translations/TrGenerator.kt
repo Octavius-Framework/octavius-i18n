@@ -1,4 +1,4 @@
-package org.octavius.gradle
+package io.github.octaviusframework.translations
 
 
 /**
@@ -42,7 +42,7 @@ internal class TrGenerator(private val packageName: String) {
 
         // Registry i currentLanguage
         appendLine()
-        appendLine("private val registry = mutableMapOf<kotlin.String, TranslationData>()")
+        appendLine("private val registry = mutableMapOf<kotlin.String, $packageName.TranslationData>()")
         appendLine()
         appendLine("/** Currently active language */")
         appendLine("public var currentLanguage: kotlin.String = \"$defaultLang\"")
@@ -50,7 +50,7 @@ internal class TrGenerator(private val packageName: String) {
 
         // Register function
         appendLine("/** Register translation data for a language */")
-        appendLine("public fun register(lang: kotlin.String, data: TranslationData) {")
+        appendLine("public fun register(lang: kotlin.String, data: $packageName.TranslationData) {")
         indentLevel++
         appendLine("registry[lang] = data")
         indentLevel--
@@ -69,7 +69,7 @@ internal class TrGenerator(private val packageName: String) {
         appendLine()
 
         // Private data accessor
-        appendLine("private val data: TranslationData")
+        appendLine("private val data: $packageName.TranslationData")
         indentLevel++
         appendLine("get() = registry[currentLanguage] ?: error(\"Language \\\"${'$'}currentLanguage\\\" not registered\")")
         indentLevel--

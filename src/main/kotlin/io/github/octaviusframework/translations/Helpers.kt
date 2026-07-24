@@ -1,4 +1,4 @@
-package org.octavius.gradle
+package io.github.octaviusframework.translations
 
 /**
  * Reprezentuje typ wpisu w JSON tłumaczeń.
