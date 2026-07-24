@@ -1,1 +1,1 @@
-rootProject.name = "octavius-translations"
+rootProject.name = "octavius-i18n"

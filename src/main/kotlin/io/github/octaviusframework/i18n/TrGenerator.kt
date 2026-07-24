@@ -1,4 +1,4 @@
-package io.github.octaviusframework.translations
+package io.github.octaviusframework.i18n
 
 
 /**

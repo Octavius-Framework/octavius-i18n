@@ -1,4 +1,4 @@
-package io.github.octaviusframework.translations
+package io.github.octaviusframework.i18n
 
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -151,9 +151,9 @@ private class LanguageDataGenerator(private val packageName: String) {
 
 
 /**
- * Registers the `generateTranslationAccessors` task in the root project.
+ * Registers the `generateI18nAccessors` task in the root project.
  *
- * The task scans all modules for translations_*.json files,
+ * The task scans all modules for `i18n\*.json` files,
  * merges them in memory and generates:
  * - Translations{Lang}.kt - flat maps with data per language
  * - Tr.kt - registry + type-safe accessors
@@ -161,13 +161,13 @@ private class LanguageDataGenerator(private val packageName: String) {
  * @param coreProject Core project where the files will be generated
  * @param targetPackage Package for the generated code
  */
-fun Project.registerGenerateTranslationAccessorsTask(
+fun Project.registerGenerateI18nAccessorsTask(
     coreProject: Project,
     sourceProject: Project = rootProject,
     targetPackage: String = "org.octavius.localization",
     objectName: String = "Tr"
 ): TaskProvider<*> {
-    return tasks.register("generateTranslationAccessors") {
+    return tasks.register("generateI18nAccessors") {
         group = "build"
         description = "Generates type-safe Kotlin accessors for translations."
 
@@ -177,7 +177,7 @@ fun Project.registerGenerateTranslationAccessorsTask(
         // Gather all translation files as inputs
         sourceProject.allprojects.forEach { sub ->
             // Use fileTree to track only jsons
-            inputs.files(sub.fileTree("src") { include("**/translations_*.json") })
+            inputs.files(sub.fileTree("src") { include("**/i18n/*.json") })
         }
 
         doLast {
@@ -188,8 +188,8 @@ fun Project.registerGenerateTranslationAccessorsTask(
             // Scan all subprojects
             sourceProject.allprojects.forEach { subproject ->
                 subproject.file("src").walk().forEach { file ->
-                    if (file.isFile && file.name.startsWith("translations_") && file.name.endsWith(".json")) {
-                        val lang = file.name.substringAfter("translations_").substringBefore(".json")
+                    if (file.isFile && file.parentFile?.name == "i18n" && file.name.endsWith(".json")) {
+                        val lang = file.name.substringBefore(".json")
                         val content = file.readText(Charsets.UTF_8)
                         if (content.isNotBlank()) {
                             logger.info("Found translation for '$lang' in ${subproject.name}/${file.relativeTo(subproject.projectDir)}")

@@ -18,9 +18,9 @@ dependencies {
 
 gradlePlugin {
     plugins {
-        create("translations") {
-            id = "io.github.octaviusframework.translations"
-            implementationClass = "io.github.octaviusframework.translations.TranslationsPlugin"
+        create("i18n") {
+            id = "io.github.octaviusframework.i18n"
+            implementationClass = "io.github.octaviusframework.i18n.I18nPlugin"
         }
     }
 }
