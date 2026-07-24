@@ -21,6 +21,13 @@ registerGenerateI18nAccessorsTask(
     objectName = "Tr"
 )
 
+registerGenerateI18nAccessorsTask(
+    coreProject = project,
+    sourceProject = project(":feature"),
+    targetPackage = "org.example.feature.i18n",
+    objectName = "FeatureTr"
+)
+
 kotlin {
     sourceSets.main {
         kotlin.srcDir(layout.buildDirectory.dir("generated/kotlin/commonMain"))
@@ -28,7 +35,8 @@ kotlin {
 }
 
 tasks.named("compileKotlin") {
-    dependsOn("generateI18nAccessors")
+    dependsOn("generateI18nAccessorsTr")
+    dependsOn("generateI18nAccessorsFeatureTr")
 }
 
 tasks.test {

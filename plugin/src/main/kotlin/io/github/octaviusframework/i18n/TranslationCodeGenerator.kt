@@ -96,10 +96,11 @@ private fun escapeString(s: String): String {
 /**
  * Generates a file with translation data for a specific language.
  */
-private class LanguageDataGenerator(private val packageName: String) {
+private class LanguageDataGenerator(private val packageName: String, private val objectName: String) {
 
     fun generate(lang: String, simple: Map<String, String>, plural: Map<String, Map<String, String>>): String {
         val langPascal = toPascalCase(lang)
+        val className = "${objectName}Translations$langPascal"
         val builder = StringBuilder()
 
         builder.appendLine("@file:Suppress(\"unused\", \"RedundantVisibilityModifier\")")
@@ -111,7 +112,7 @@ private class LanguageDataGenerator(private val packageName: String) {
         builder.appendLine(" *")
         builder.appendLine(" * This file is auto-generated. Do not edit manually.")
         builder.appendLine(" */")
-        builder.appendLine("public object Translations$langPascal : io.github.octaviusframework.i18n.core.TranslationData {")
+        builder.appendLine("public object $className : io.github.octaviusframework.i18n.core.TranslationData {")
         builder.appendLine()
 
         // Simple translations
@@ -160,9 +161,10 @@ fun Project.registerGenerateI18nAccessorsTask(
     targetPackage: String = "org.octavius.localization",
     objectName: String = "Tr"
 ): TaskProvider<*> {
-    return tasks.register("generateI18nAccessors") {
+    val taskName = "generateI18nAccessors$objectName"
+    return tasks.register(taskName) {
         group = "build"
-        description = "Generates type-safe Kotlin accessors for translations."
+        description = "Generates type-safe Kotlin accessors for translations ($objectName)."
 
         val outputDir = coreProject.layout.buildDirectory.dir("generated/kotlin/commonMain")
         outputs.dir(outputDir)
@@ -216,10 +218,10 @@ fun Project.registerGenerateI18nAccessorsTask(
                 val entries = parseTranslationMap(translationMap)
                 val (simpleMap, pluralMap) = flattenTranslations(entries)
 
-                // Generate Translations{Lang}.kt
-                val langGenerator = LanguageDataGenerator(targetPackage)
+                // Generate {ObjectName}Translations{Lang}.kt
+                val langGenerator = LanguageDataGenerator(targetPackage, objectName)
                 val langCode = langGenerator.generate(lang, simpleMap, pluralMap)
-                val langFile = File(outputDirFile, "$packagePath/Translations${toPascalCase(lang)}.kt")
+                val langFile = File(outputDirFile, "$packagePath/${objectName}Translations${toPascalCase(lang)}.kt")
                 langFile.parentFile.mkdirs()
                 langFile.writeText(langCode, StandardCharsets.UTF_8)
                 logger.lifecycle("Generated: ${langFile.path}")

@@ -3,6 +3,7 @@ package org.example.i18n
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import io.github.octaviusframework.i18n.core.OctaviusI18n
+import org.example.feature.i18n.FeatureTr
 
 class I18nTest {
 
@@ -29,6 +30,12 @@ class I18nTest {
             "3 men bought 5 apples", 
             Tr.Composition.sentence(Tr.Composition.men(3), Tr.Composition.apples(5))
         )
+        
+        // Submodule test via generic Tr
+        assertEquals("Login to feature", Tr.Feature.login())
+        
+        // Submodule test via dedicated FeatureTr
+        assertEquals("Login to feature", FeatureTr.Feature.login())
     }
 
     @Test
@@ -60,5 +67,11 @@ class I18nTest {
             "5 mężczyzn kupiło 10 jabłek", 
             Tr.Composition.sentence(Tr.Composition.men(5), Tr.Composition.apples(10))
         )
+
+        // Submodule test via generic Tr
+        assertEquals("Zaloguj do funkcji", Tr.Feature.login())
+
+        // Submodule test via dedicated FeatureTr
+        assertEquals("Zaloguj do funkcji", FeatureTr.Feature.login())
     }
 }

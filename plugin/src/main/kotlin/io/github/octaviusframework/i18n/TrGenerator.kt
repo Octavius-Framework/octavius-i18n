@@ -48,7 +48,7 @@ internal class TrGenerator(private val packageName: String, private val objectNa
         indentLevel++
         allLangs.forEach { lang ->
             val langPascal = toPascalCase(lang)
-            appendLine("___registry[\"$lang\"] = Translations$langPascal")
+            builder.appendLine("        ___registry[\"$lang\"] = ${objectName}Translations$langPascal")
         }
         indentLevel--
         appendLine("}")
