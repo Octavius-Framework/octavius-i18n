@@ -134,10 +134,13 @@ private class LanguageDataGenerator(private val packageName: String) {
         builder.appendLine("    override val plural: kotlin.collections.Map<kotlin.String, $packageName.PluralForms> = mapOf(")
         plural.entries.sortedBy { it.key }.forEachIndexed { index, (key, forms) ->
             val comma = if (index < plural.size - 1) "," else ""
-            val one = forms["one"]?.let { "\"${escapeString(it)}\"" } ?: "null"
-            val few = forms["few"]?.let { "\"${escapeString(it)}\"" } ?: "null"
-            val many = forms["many"]?.let { "\"${escapeString(it)}\"" } ?: "\"$key\""
-            builder.appendLine("        \"$key\" to $packageName.PluralForms($one, $few, $many)$comma")
+            val zero = forms["_zero"]?.let { "\"${escapeString(it)}\"" } ?: "null"
+            val one = forms["_one"]?.let { "\"${escapeString(it)}\"" } ?: "null"
+            val two = forms["_two"]?.let { "\"${escapeString(it)}\"" } ?: "null"
+            val few = forms["_few"]?.let { "\"${escapeString(it)}\"" } ?: "null"
+            val many = forms["_many"]?.let { "\"${escapeString(it)}\"" } ?: "null"
+            val other = forms["_other"]?.let { "\"${escapeString(it)}\"" } ?: "\"$key\""
+            builder.appendLine("        \"$key\" to $packageName.PluralForms($zero, $one, $two, $few, $many, $other)$comma")
         }
         builder.appendLine("    )")
         builder.appendLine("}")
@@ -160,7 +163,9 @@ private class LanguageDataGenerator(private val packageName: String) {
  */
 fun Project.registerGenerateTranslationAccessorsTask(
     coreProject: Project,
-    targetPackage: String = "org.octavius.localization"
+    sourceProject: Project = rootProject,
+    targetPackage: String = "org.octavius.localization",
+    objectName: String = "Tr"
 ): TaskProvider<*> {
     return tasks.register("generateTranslationAccessors") {
         group = "build"
@@ -170,7 +175,7 @@ fun Project.registerGenerateTranslationAccessorsTask(
         outputs.dir(outputDir)
 
         // Zbieramy wszystkie pliki translations jako inputy
-        rootProject.subprojects.forEach { sub ->
+        sourceProject.allprojects.forEach { sub ->
             // Użyj fileTree aby śledzić tylko jsony
             inputs.files(sub.fileTree("src") { include("**/translations_*.json") })
         }
@@ -181,7 +186,7 @@ fun Project.registerGenerateTranslationAccessorsTask(
             val mergedByLang = mutableMapOf<String, MutableMap<String, Any?>>()
 
             // Skanujemy wszystkie podprojekty
-            rootProject.subprojects.forEach { subproject ->
+            sourceProject.allprojects.forEach { subproject ->
                 subproject.file("src").walk().forEach { file ->
                     if (file.isFile && file.name.startsWith("translations_") && file.name.endsWith(".json")) {
                         val lang = file.name.substringAfter("translations_").substringBefore(".json")
@@ -216,9 +221,12 @@ fun Project.registerGenerateTranslationAccessorsTask(
                  * Reprezentuje formy pluralne dla danego klucza tłumaczenia.
                  */
                 public data class PluralForms(
+                    val zero: kotlin.String?,
                     val one: kotlin.String?,
+                    val two: kotlin.String?,
                     val few: kotlin.String?,
-                    val many: kotlin.String
+                    val many: kotlin.String?,
+                    val other: kotlin.String
                 )
 
                 /**
@@ -255,9 +263,9 @@ fun Project.registerGenerateTranslationAccessorsTask(
             val allLangs = mergedByLang.keys.toList()
             val entries = parseTranslationMap(defaultMap)
 
-            val trGenerator = TrGenerator(targetPackage)
+            val trGenerator = TrGenerator(targetPackage, objectName)
             val trCode = trGenerator.generate(entries, defaultLang, allLangs)
-            val trFile = File(outputDirFile, "$packagePath/Tr.kt")
+            val trFile = File(outputDirFile, "$packagePath/$objectName.kt")
             trFile.writeText(trCode, StandardCharsets.UTF_8)
             logger.lifecycle("Generated: ${trFile.path}")
 

@@ -17,7 +17,7 @@ internal sealed class TranslationEntry {
     data class Nested(val children: Map<String, TranslationEntry>) : TranslationEntry()
 }
 
-internal val PLURAL_KEYS = setOf("one", "few", "many")
+internal val PLURAL_KEYS = setOf("_zero", "_one", "_two", "_few", "_many", "_other")
 internal val PARAM_REGEX = Regex("""\{(\d+)\}""")
 
 

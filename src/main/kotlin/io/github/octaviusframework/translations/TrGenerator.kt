@@ -4,7 +4,7 @@ package io.github.octaviusframework.translations
 /**
  * Generuje główny plik Tr.kt z registry i type-safe accessorami.
  */
-internal class TrGenerator(private val packageName: String) {
+internal class TrGenerator(private val packageName: String, private val objectName: String) {
     private val builder = StringBuilder()
     private var indentLevel = 0
 
@@ -32,27 +32,64 @@ internal class TrGenerator(private val packageName: String) {
         appendLine(" *")
         appendLine(" * Usage:")
         appendLine(" * ```kotlin")
-        appendLine(" * Tr.Action.save()           // Get translation")
-        appendLine(" * Tr.currentLanguage = \"en\"  // Switch language")
-        appendLine(" * Tr.register(\"de\", TranslationsDe)  // Register new language")
+        appendLine(" * $objectName.Action.save()           // Get translation")
+        appendLine(" * $objectName.currentLanguage = \"en\"  // Switch language")
+        appendLine(" * $objectName.register(\"de\", TranslationsDe)  // Register new language")
         appendLine(" * ```")
         appendLine(" */")
-        appendLine("public object Tr {")
+        appendLine("public object $objectName {")
         indentLevel++
 
         // Registry i currentLanguage
         appendLine()
         appendLine("private val registry = mutableMapOf<kotlin.String, $packageName.TranslationData>()")
         appendLine()
+        appendLine("public interface PluralRule {")
+        indentLevel++
+        appendLine("public fun selectForm(count: kotlin.Int): kotlin.String")
+        appendLine("public fun selectForm(count: kotlin.Double): kotlin.String")
+        indentLevel--
+        appendLine("}")
+        appendLine()
+        appendLine("private val pluralRules = mutableMapOf<kotlin.String, PluralRule>(")
+        indentLevel++
+        appendLine("\"en\" to object : PluralRule {")
+        indentLevel++
+        appendLine("override fun selectForm(count: kotlin.Int) = if (count == 1) \"one\" else \"other\"")
+        appendLine("override fun selectForm(count: kotlin.Double) = \"other\"")
+        indentLevel--
+        appendLine("},")
+        appendLine("\"pl\" to object : PluralRule {")
+        indentLevel++
+        appendLine("override fun selectForm(count: kotlin.Int) = when {")
+        indentLevel++
+        appendLine("count == 1 -> \"one\"")
+        appendLine("count % 10 in 2..4 && count % 100 !in 12..14 -> \"few\"")
+        appendLine("else -> \"many\"")
+        indentLevel--
+        appendLine("}")
+        appendLine("override fun selectForm(count: kotlin.Double) = \"other\"")
+        indentLevel--
+        appendLine("}")
+        indentLevel--
+        appendLine(")")
+        appendLine()
         appendLine("/** Currently active language */")
         appendLine("public var currentLanguage: kotlin.String = \"$defaultLang\"")
         appendLine()
 
-        // Register function
+        // Register functions
         appendLine("/** Register translation data for a language */")
         appendLine("public fun register(lang: kotlin.String, data: $packageName.TranslationData) {")
         indentLevel++
         appendLine("registry[lang] = data")
+        indentLevel--
+        appendLine("}")
+        appendLine()
+        appendLine("/** Register a plural rule logic for a specific language */")
+        appendLine("public fun registerPluralRule(lang: kotlin.String, rule: PluralRule) {")
+        indentLevel++
+        appendLine("pluralRules[lang] = rule")
         indentLevel--
         appendLine("}")
         appendLine()
@@ -87,14 +124,41 @@ internal class TrGenerator(private val packageName: String) {
         appendLine("private fun lookupPlural(key: kotlin.String, count: kotlin.Int, vararg args: kotlin.Any): kotlin.String {")
         indentLevel++
         appendLine("val forms = data.plural[key] ?: return key")
-        appendLine("val form = when {")
+        appendLine("if (count == 0 && forms.zero != null) return formatString(forms.zero, count, *args)")
+        appendLine("val rule = pluralRules[currentLanguage] ?: pluralRules[\"en\"] ?: object : PluralRule { override fun selectForm(count: kotlin.Int) = \"other\"; override fun selectForm(count: kotlin.Double) = \"other\" }")
+        appendLine("val formName = rule.selectForm(count)")
+        appendLine("val formTemplate = when (formName) {")
         indentLevel++
-        appendLine("count == 1 -> forms.one ?: forms.many")
-        appendLine("count % 10 in 2..4 && count % 100 !in 12..14 -> forms.few ?: forms.many")
-        appendLine("else -> forms.many")
+        appendLine("\"zero\" -> forms.zero")
+        appendLine("\"one\" -> forms.one")
+        appendLine("\"two\" -> forms.two")
+        appendLine("\"few\" -> forms.few")
+        appendLine("\"many\" -> forms.many")
+        appendLine("else -> forms.other")
+        indentLevel--
+        appendLine("} ?: forms.other")
+        appendLine("return formatString(formTemplate, count, *args)")
         indentLevel--
         appendLine("}")
-        appendLine("return formatString(form, count, *args)")
+        appendLine()
+
+        appendLine("private fun lookupPlural(key: kotlin.String, count: kotlin.Double, vararg args: kotlin.Any): kotlin.String {")
+        indentLevel++
+        appendLine("val forms = data.plural[key] ?: return key")
+        appendLine("if (count == 0.0 && forms.zero != null) return formatString(forms.zero, count, *args)")
+        appendLine("val rule = pluralRules[currentLanguage] ?: pluralRules[\"en\"] ?: object : PluralRule { override fun selectForm(count: kotlin.Int) = \"other\"; override fun selectForm(count: kotlin.Double) = \"other\" }")
+        appendLine("val formName = rule.selectForm(count)")
+        appendLine("val formTemplate = when (formName) {")
+        indentLevel++
+        appendLine("\"zero\" -> forms.zero")
+        appendLine("\"one\" -> forms.one")
+        appendLine("\"two\" -> forms.two")
+        appendLine("\"few\" -> forms.few")
+        appendLine("\"many\" -> forms.many")
+        appendLine("else -> forms.other")
+        indentLevel--
+        appendLine("} ?: forms.other")
+        appendLine("return formatString(formTemplate, count, *args)")
         indentLevel--
         appendLine("}")
         appendLine()
@@ -161,9 +225,13 @@ internal class TrGenerator(private val packageName: String) {
                         val args = (1..maxParam).joinToString(", ") { "arg$it" }
                         appendLine("/** `$fullKey` (plural) */")
                         appendLine("public fun $funcName(count: kotlin.Int, $params): kotlin.String = lookupPlural(\"$fullKey\", count, $args)")
+                        appendLine("/** `$fullKey` (plural - fraction) */")
+                        appendLine("public fun $funcName(count: kotlin.Double, $params): kotlin.String = lookupPlural(\"$fullKey\", count, $args)")
                     } else {
                         appendLine("/** `$fullKey` (plural) */")
                         appendLine("public fun $funcName(count: kotlin.Int): kotlin.String = lookupPlural(\"$fullKey\", count)")
+                        appendLine("/** `$fullKey` (plural - fraction) */")
+                        appendLine("public fun $funcName(count: kotlin.Double): kotlin.String = lookupPlural(\"$fullKey\", count)")
                     }
                     appendLine()
                 }
