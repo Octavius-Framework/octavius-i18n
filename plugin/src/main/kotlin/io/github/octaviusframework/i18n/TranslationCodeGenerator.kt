@@ -1,8 +1,16 @@
 package io.github.octaviusframework.i18n
 
-import kotlinx.serialization.json.*
-import org.gradle.api.Project
-import org.gradle.api.tasks.TaskProvider
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import org.gradle.api.DefaultTask
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.FileCollection
+import org.gradle.api.provider.Property
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.OutputDirectory
 import java.io.File
 import java.nio.charset.StandardCharsets
 
@@ -144,124 +152,99 @@ private class LanguageDataGenerator(private val packageName: String, private val
 }
 
 
-/**
- * Registers the translation generator task for the project.
- *
- * This task scans for JSON translation files within the `sourceProject` and all its subprojects.
- * It intelligently merges translations from all languages to ensure a complete union of keys,
- * and generates type-safe Kotlin accessors in the `targetProject`.
- *
- * Generated files (e.g., if objectName is "Tr" and languages are EN/PL):
- * - `Tr.kt` - the main object containing type-safe accessors (e.g., `Tr.Users.active()`)
- * - `TrTranslationsEn.kt` - internal data map for English
- * - `TrTranslationsPl.kt` - internal data map for Polish
- *
- * @param targetProject The project where the Kotlin files will be generated and compiled. Defaults to the current project.
- * @param sourceProject The project root to scan for translation files. Scans recursively. Defaults to rootProject.
- * @param targetPackage The package name for the generated Kotlin files.
- * @param objectName The name of the main generated Kotlin object (e.g., "Tr", "FeatureTr").
- */
-fun Project.registerGenerateI18nAccessorsTask(
-    targetProject: Project = this,
-    sourceProject: Project = rootProject,
-    targetPackage: String = "io.github.octaviusframework.i18n.generated",
-    objectName: String = "Tr"
-): TaskProvider<*> {
-    val taskName = "generateI18nAccessors$objectName"
-    return tasks.register(taskName) {
-        group = "build"
-        description = "Generates type-safe Kotlin accessors for translations ($objectName)."
+abstract class GenerateI18nTask : DefaultTask() {
 
-        val outputDir = targetProject.layout.buildDirectory.dir("generated/kotlin/commonMain")
-        outputs.dir(outputDir)
+    @get:Input
+    abstract val targetPackage: Property<String>
 
-        // Gather all translation files as inputs
-        sourceProject.allprojects.forEach { sub ->
-            // Use fileTree to track only jsons
-            inputs.files(sub.fileTree("src") { include("**/i18n/*.json") })
-        }
+    @get:Input
+    abstract val objectName: Property<String>
 
-        doLast {
-            val jsonParser = Json { ignoreUnknownKeys = true }
-            val mergedByLang = mutableMapOf<String, MutableMap<String, JsonElement>>()
+    @get:InputFiles
+    abstract val sourceFiles: Property<FileCollection>
 
-            // Scan all subprojects
-            sourceProject.allprojects.forEach { subproject ->
-                subproject.file("src").walk().forEach { file ->
-                    if (file.isFile && file.parentFile?.name == "i18n" && file.name.endsWith(".json")) {
-                        val lang = file.name.substringBefore(".json")
-                        val content = file.readText(Charsets.UTF_8)
-                        if (content.isNotBlank()) {
-                            logger.info("Found translation for '$lang' in ${subproject.name}/${file.relativeTo(subproject.projectDir)}")
-                            try {
-                                val sourceElement = jsonParser.parseToJsonElement(content)
-                                if (sourceElement is JsonObject) {
-                                    val targetMap = mergedByLang.getOrPut(lang) { mutableMapOf() }
-                                    mergeJsonElements(targetMap, sourceElement)
-                                }
-                            } catch (e: Exception) {
-                                logger.error("Failed to parse translation file: ${file.path}", e)
-                            }
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @org.gradle.api.tasks.TaskAction
+    fun generate() {
+        val jsonParser = Json { ignoreUnknownKeys = true }
+        val mergedByLang = mutableMapOf<String, MutableMap<String, JsonElement>>()
+        
+        val actualTargetPackage = targetPackage.get()
+        val actualObjectName = objectName.get()
+
+        sourceFiles.get().files.forEach { file ->
+            if (file.isFile && file.name.endsWith(".json")) {
+                val lang = file.name.substringBefore(".json")
+                val content = file.readText(Charsets.UTF_8)
+                if (content.isNotBlank()) {
+                    logger.info("Found translation for '$lang' in ${file.path}")
+                    try {
+                        val sourceElement = jsonParser.parseToJsonElement(content)
+                        if (sourceElement is JsonObject) {
+                            val targetMap = mergedByLang.getOrPut(lang) { mutableMapOf() }
+                            mergeJsonElements(targetMap, sourceElement)
                         }
+                    } catch (e: Exception) {
+                        logger.error("Failed to parse translation file: ${file.path}", e)
                     }
                 }
             }
-
-            if (mergedByLang.isEmpty()) {
-                logger.warn("No translation files found!")
-                return@doLast
-            }
-
-            val packagePath = targetPackage.replace(".", "/")
-            val outputDirFile = outputDir.get().asFile
-
-            // No longer generating TranslationData and PluralForms here as they are in the runtime library
-
-            // Generate files for each language
-            for ((lang, translationMap) in mergedByLang) {
-                logger.lifecycle("Generating translations for language: $lang")
-
-                val entries = parseTranslationMap(translationMap)
-                val (simpleMap, pluralMap) = flattenTranslations(entries)
-
-                // Generate {ObjectName}Translations{Lang}.kt
-                val langGenerator = LanguageDataGenerator(targetPackage, objectName)
-                val langCode = langGenerator.generate(lang, simpleMap, pluralMap)
-                val langFile = File(outputDirFile, "$packagePath/${objectName}Translations${toPascalCase(lang)}.kt")
-                langFile.parentFile.mkdirs()
-                langFile.writeText(langCode, StandardCharsets.UTF_8)
-                logger.lifecycle("Generated: ${langFile.path}")
-            }
-
-            // Generate Tr.kt (we use the first language as default language for runtime)
-            val defaultLang = mergedByLang.keys.first()
-            val allLangs = mergedByLang.keys.toList()
-            
-            // Build a union of all translation maps to ensure ALL keys are generated
-            val unionMap = mutableMapOf<String, JsonElement>()
-            mergedByLang.values.forEach { langMap ->
-                mergeJsonElements(unionMap, JsonObject(langMap))
-            }
-            val entries = parseTranslationMap(unionMap)
-
-            val trGenerator = TrGenerator(targetPackage, objectName)
-            val trCode = trGenerator.generate(entries, defaultLang, allLangs)
-            val trFile = File(outputDirFile, "$packagePath/$objectName.kt")
-            trFile.writeText(trCode, StandardCharsets.UTF_8)
-            logger.lifecycle("Generated: ${trFile.path}")
-
-            // Statistics
-            fun countFunctions(entries: Map<String, TranslationEntry>): Int {
-                return entries.values.sumOf { entry ->
-                    when (entry) {
-                        is TranslationEntry.Nested -> countFunctions(entry.children)
-                        else -> 1
-                    }
-                }
-            }
-            val functionCount = countFunctions(entries)
-            val (simpleCount, pluralCount) = flattenTranslations(entries)
-            logger.lifecycle("Generated $functionCount accessors (${simpleCount.size} simple, ${pluralCount.size} plural)")
         }
+
+        if (mergedByLang.isEmpty()) {
+            logger.warn("No translation files found!")
+            return
+        }
+
+        val packagePath = actualTargetPackage.replace(".", "/")
+        val outputDirFile = outputDir.get().asFile
+
+        // Generate files for each language
+        for ((lang, translationMap) in mergedByLang) {
+            logger.lifecycle("Generating translations for language: $lang")
+
+            val entries = parseTranslationMap(translationMap)
+            val (simpleMap, pluralMap) = flattenTranslations(entries)
+
+            // Generate {ObjectName}Translations{Lang}.kt
+            val langGenerator = LanguageDataGenerator(actualTargetPackage, actualObjectName)
+            val langCode = langGenerator.generate(lang, simpleMap, pluralMap)
+            val langFile = File(outputDirFile, "$packagePath/${actualObjectName}Translations${toPascalCase(lang)}.kt")
+            langFile.parentFile.mkdirs()
+            langFile.writeText(langCode, StandardCharsets.UTF_8)
+            logger.lifecycle("Generated: ${langFile.path}")
+        }
+
+        // Generate Tr.kt (we use the first language as default language for runtime)
+        val defaultLang = mergedByLang.keys.first()
+        val allLangs = mergedByLang.keys.toList()
+
+        // Build a union of all translation maps to ensure ALL keys are generated
+        val unionMap = mutableMapOf<String, JsonElement>()
+        mergedByLang.values.forEach { langMap ->
+            mergeJsonElements(unionMap, JsonObject(langMap))
+        }
+        val entries = parseTranslationMap(unionMap)
+
+        val trGenerator = TrGenerator(actualTargetPackage, actualObjectName)
+        val trCode = trGenerator.generate(entries, defaultLang, allLangs)
+        val trFile = File(outputDirFile, "$packagePath/$actualObjectName.kt")
+        trFile.writeText(trCode, StandardCharsets.UTF_8)
+        logger.lifecycle("Generated: ${trFile.path}")
+
+        // Statistics
+        fun countFunctions(entries: Map<String, TranslationEntry>): Int {
+            return entries.values.sumOf { entry ->
+                when (entry) {
+                    is TranslationEntry.Nested -> countFunctions(entry.children)
+                    else -> 1
+                }
+            }
+        }
+        val functionCount = countFunctions(entries)
+        val (simpleCount, pluralCount) = flattenTranslations(entries)
+        logger.lifecycle("Generated $functionCount accessors (${simpleCount.size} simple, ${pluralCount.size} plural)")
     }
 }
