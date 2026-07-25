@@ -6,8 +6,16 @@ import org.gradle.api.Project
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 
+/**
+ * The entry point for the Octavius I18n Gradle plugin.
+ * 
+ * This plugin sets up the `octaviusI18n` extension and dynamically registers
+ * code generation tasks for each configured translation generator. 
+ * It automatically hooks generated sources into the Kotlin Multiplatform or Kotlin JVM compilation process.
+ */
 class I18nPlugin : Plugin<Project> {
     override fun apply(target: Project) {
+        // Register the main extension allowing users to configure the plugin in build.gradle.kts
         val extension = target.extensions.create("octaviusI18n", OctaviusI18nExtension::class.java)
 
         extension.generators.all(object : Action<I18nGeneratorConfig> {
@@ -27,7 +35,7 @@ class I18nPlugin : Plugin<Project> {
                         t.sourceFiles.set(config.sourceProject.orElse(target.rootProject).map { sp ->
                             val fc = target.files()
                             sp.allprojects.forEach { sub ->
-                                fc.from(sub.fileTree("src") { include("**/i18n/*.json") })
+                                fc.from(sub.fileTree("src") { it.include("**/i18n/*.json") })
                             }
                             fc
                         })

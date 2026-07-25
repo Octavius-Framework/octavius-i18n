@@ -1,7 +1,7 @@
 plugins {
-    `kotlin-dsl`
-    `maven-publish`
-    id("com.gradle.plugin-publish") version "1.3.0"
+    alias(libs.plugins.kotlinJvm)
+    `java-gradle-plugin`
+    id("com.gradle.plugin-publish") version "2.1.1"
 }
 
 kotlin {
@@ -15,6 +15,7 @@ repositories {
 }
 
 dependencies {
+    compileOnly(gradleApi())
     implementation(libs.kotlinx.serialization.json)
     compileOnly(kotlin("gradle-plugin", libs.versions.kotlin.get()))
 }
@@ -25,9 +26,9 @@ gradlePlugin {
     
     plugins {
         create("i18n") {
-            id = "io.github.octaviusframework.i18n"
+            id = "io.github.octavius-framework.i18n"
             displayName = "Octavius I18n"
-            description = "A type-safe, code-generated localization plugin for Kotlin."
+            description = "A type-safe, code-generated localization plugin. Write your translations once in JSON, run the generator, and let the compiler catch every missing key — just as a Roman scribe would catch every missing seal."
             tags.set(listOf("kotlin", "i18n", "localization", "kmp", "multiplatform"))
             implementationClass = "io.github.octaviusframework.i18n.I18nPlugin"
         }

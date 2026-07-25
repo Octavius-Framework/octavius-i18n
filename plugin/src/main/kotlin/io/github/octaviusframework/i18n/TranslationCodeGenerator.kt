@@ -8,9 +8,13 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.FileCollection
 import org.gradle.api.provider.Property
+import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.TaskAction
 import java.io.File
 import java.nio.charset.StandardCharsets
 
@@ -152,6 +156,7 @@ private class LanguageDataGenerator(private val packageName: String, private val
 }
 
 
+@CacheableTask
 abstract class GenerateI18nTask : DefaultTask() {
 
     @get:Input
@@ -161,6 +166,7 @@ abstract class GenerateI18nTask : DefaultTask() {
     abstract val objectName: Property<String>
 
     @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val sourceFiles: Property<FileCollection>
 
     @get:OutputDirectory
@@ -169,7 +175,7 @@ abstract class GenerateI18nTask : DefaultTask() {
     @get:Input
     abstract val fallbackLanguage: Property<String>
 
-    @org.gradle.api.tasks.TaskAction
+    @TaskAction
     fun generate() {
         val jsonParser = Json { ignoreUnknownKeys = true }
         val mergedByLang = mutableMapOf<String, MutableMap<String, JsonElement>>()
