@@ -15,6 +15,7 @@ repositories {
 
 dependencies {
     implementation(libs.kotlinx.serialization.json)
+    compileOnly(kotlin("gradle-plugin", libs.versions.kotlin.get()))
 }
 
 
