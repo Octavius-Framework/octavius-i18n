@@ -60,7 +60,7 @@ internal class TrGenerator(private val packageName: String, private val objectNa
         appendLine("get() {")
         indentLevel++
         appendLine("val lang = io.github.octaviusframework.i18n.core.OctaviusI18n.currentLanguage")
-        appendLine("return ___registry[lang] ?: error(\"Language \\\"${'$'}lang\\\" not registered in this module\")")
+        appendLine("return ___registry[lang] ?: ___registry[\"$defaultLang\"] ?: ___registry.values.first()")
         indentLevel--
         appendLine("}")
         indentLevel--

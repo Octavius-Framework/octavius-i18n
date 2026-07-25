@@ -21,6 +21,7 @@ class I18nPlugin : Plugin<Project> {
 
                         t.targetPackage.set(config.targetPackage)
                         t.objectName.set(config.objectName)
+                        t.fallbackLanguage.set(config.fallbackLanguage)
                         t.outputDir.set(target.layout.buildDirectory.dir("generated/kotlin/commonMain"))
 
                         t.sourceFiles.set(config.sourceProject.orElse(target.rootProject).map { sp ->

@@ -166,6 +166,9 @@ abstract class GenerateI18nTask : DefaultTask() {
     @get:OutputDirectory
     abstract val outputDir: DirectoryProperty
 
+    @get:Input
+    abstract val fallbackLanguage: Property<String>
+
     @org.gradle.api.tasks.TaskAction
     fun generate() {
         val jsonParser = Json { ignoreUnknownKeys = true }
@@ -218,7 +221,7 @@ abstract class GenerateI18nTask : DefaultTask() {
         }
 
         // Generate Tr.kt (we use the first language as default language for runtime)
-        val defaultLang = mergedByLang.keys.first()
+        val defaultLang = fallbackLanguage.get()
         val allLangs = mergedByLang.keys.toList()
 
         // Build a union of all translation maps to ensure ALL keys are generated
