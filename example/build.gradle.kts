@@ -1,4 +1,3 @@
-import io.github.octaviusframework.i18n.registerGenerateI18nAccessorsTask
 
 plugins {
     kotlin("jvm") version "2.4.0"
@@ -14,29 +13,18 @@ dependencies {
     testImplementation(kotlin("test"))
 }
 
-registerGenerateI18nAccessorsTask(
-    targetProject = project,
-    sourceProject = project,
-    targetPackage = "org.example.i18n",
-    objectName = "Tr"
-)
-
-registerGenerateI18nAccessorsTask(
-    targetProject = project,
-    sourceProject = project(":feature"),
-    targetPackage = "org.example.feature.i18n",
-    objectName = "FeatureTr"
-)
-
-kotlin {
-    sourceSets.main {
-        kotlin.srcDir(layout.buildDirectory.dir("generated/kotlin/commonMain"))
+octaviusI18n {
+    generators {
+        create("main") {
+            targetPackage = "org.example.i18n"
+            objectName = "Tr"
+        }
+        create("feature") {
+            sourceProject = project(":feature")
+            targetPackage = "org.example.feature.i18n"
+            objectName = "FeatureTr"
+        }
     }
-}
-
-tasks.named("compileKotlin") {
-    dependsOn("generateI18nAccessorsTr")
-    dependsOn("generateI18nAccessorsFeatureTr")
 }
 
 tasks.test {
