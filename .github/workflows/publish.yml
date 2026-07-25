@@ -32,7 +32,7 @@ jobs:
       - name: Zip Artifacts
         run: |
           cd build/staging-deploy
-          zip -r ../../publish-bundle.zip .
+          zip -r ../../i18n.zip .
 
       - name: Upload to Maven Central
         env:
