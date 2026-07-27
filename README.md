@@ -1,5 +1,8 @@
 # Octavius I18n
 
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.octavius-framework/i18n-core?label=Maven%20Central)](https://central.sonatype.com/namespace/io.github.octavius-framework)
+[![Gradle Plugin Portal](https://img.shields.io/gradle-plugin-portal/v/io.github.octavius-framework.i18n?label=Gradle%20Plugin)](https://plugins.gradle.org/plugin/io.github.octavius-framework.i18n)
+
 > *"Divide et impera"* — and so, translations are divided by module, ruled by type safety.
 
 A type-safe, code-generated localization plugin. Write your translations once in JSON, run the generator, and let the compiler catch every missing key — just as a Roman scribe would catch every missing seal.
@@ -259,4 +262,3 @@ Any language with a `<lang>.json` file inside an `i18n` folder is automatically 
 ## License
 
 Apache 2.0 — *use it freely, as Rome used its roads.*
-```
