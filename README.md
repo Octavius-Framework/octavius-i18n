@@ -25,12 +25,12 @@ A type-safe, code-generated localization plugin. Write your translations once in
 ```kotlin
 // build.gradle.kts
 plugins {
-    id("io.github.octavius-framework.i18n") version "1.0.0"
+    id("io.github.octavius-framework.i18n") version "1.0.1"
 }
 
 dependencies {
     // The core runtime library
-    implementation("io.github.octavius-framework:i18n-core:1.0.0")
+    implementation("io.github.octavius-framework:i18n-core:1.0.1")
 }
 ```
 
