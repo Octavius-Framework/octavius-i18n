@@ -20,7 +20,10 @@ internal sealed class TranslationEntry {
     data class Nested(val children: Map<String, TranslationEntry>) : TranslationEntry()
 }
 
+/** JSON object keys recognized as plural form suffixes (e.g. `_one`, `_few`). */
 internal val PLURAL_KEYS = setOf("_zero", "_one", "_two", "_few", "_many", "_other")
+
+/** Matches positional placeholders such as `{0}`, `{1}` inside a translation template. */
 internal val PARAM_REGEX = Regex("""\{(\d+)\}""")
 
 /**
@@ -61,6 +64,11 @@ internal fun isKotlinKeyword(name: String): Boolean {
     return name in keywords
 }
 
+/**
+ * Recursively merges [source] into [target] in place. Nested JSON objects are merged
+ * key by key instead of being replaced wholesale, so translations split across multiple
+ * files can contribute to the same nested structure.
+ */
 internal fun mergeJsonElements(target: MutableMap<String, JsonElement>, source: JsonObject) {
     for ((key, sourceValue) in source) {
         val targetValue = target[key]

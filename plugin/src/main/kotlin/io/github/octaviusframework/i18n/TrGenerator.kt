@@ -18,6 +18,11 @@ internal class TrGenerator(private val packageName: String, private val objectNa
         }
     }
 
+    /**
+     * Renders the full `{objectName}.kt` source file: a registry mapping each language to its
+     * generated [io.github.octaviusframework.i18n.core.TranslationData], plus a type-safe accessor
+     * object mirroring the shape of [entries].
+     */
     fun generate(entries: Map<String, TranslationEntry>, defaultLang: String, allLangs: List<String>): String {
         builder.clear()
 
@@ -76,6 +81,10 @@ internal class TrGenerator(private val packageName: String, private val objectNa
         return builder.toString()
     }
 
+    /**
+     * Recursively emits one accessor function per translation entry, and one nested `object` per
+     * [TranslationEntry.Nested] group, prefixing generated lookup keys with [keyPrefix].
+     */
     private fun generateEntries(entries: Map<String, TranslationEntry>, keyPrefix: String) {
         val sortedEntries = entries.entries.sortedBy { it.key }
 

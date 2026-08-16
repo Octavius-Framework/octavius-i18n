@@ -19,21 +19,8 @@ import java.io.File
 import java.nio.charset.StandardCharsets
 
 /**
- * Generates type-safe Kotlin classes from JSON translation files.
- *
- * Generated files:
- * - `Translations{Lang}.kt` - flat maps with translations per language
- * - `Tr.kt` - registry pattern + type-safe accessors
- *
- * Example usage of generated code:
- * ```kotlin
- * Tr.Action.save()              // instead of T.get("action.save")
- * Tr.Form.Actions.itemLabel(1)  // instead of T.get("form.actions.itemLabel", 1)
- * Tr.Games.Form.category(5)     // instead of T.getPlural("games.form.category", 5)
- *
- * // Runtime language switching
- * Tr.currentLanguage = "en"
- * ```
+ * Parses a flat map of JSON elements into a tree of [TranslationEntry] values, detecting
+ * parameterized templates (`{0}`, `{1}`, ...), plural form groups, and nested objects along the way.
  */
 private fun parseTranslationMap(map: Map<String, JsonElement>): Map<String, TranslationEntry> {
     val result = mutableMapOf<String, TranslationEntry>()
@@ -110,6 +97,10 @@ private fun escapeString(s: String): String {
  */
 private class LanguageDataGenerator(private val packageName: String, private val objectName: String) {
 
+    /**
+     * Renders the `{objectName}Translations{Lang}.kt` source file contents for a single language,
+     * embedding its flattened simple and plural translation maps as a [io.github.octaviusframework.i18n.core.TranslationData] object.
+     */
     fun generate(lang: String, simple: Map<String, String>, plural: Map<String, Map<String, String>>): String {
         val langPascal = toPascalCase(lang)
         val className = "${objectName}Translations$langPascal"
@@ -156,25 +147,51 @@ private class LanguageDataGenerator(private val packageName: String, private val
 }
 
 
+/**
+ * Gradle task that generates type-safe Kotlin classes from JSON translation files.
+ *
+ * Generated files:
+ * - `{ObjectName}Translations{Lang}.kt` - flat maps with translations per language
+ * - `{ObjectName}.kt` - registry pattern + type-safe accessors
+ *
+ * Example usage of generated code:
+ * ```kotlin
+ * Tr.Action.save()              // instead of T.get("action.save")
+ * Tr.Form.Actions.itemLabel(1)  // instead of T.get("form.actions.itemLabel", 1)
+ * Tr.Games.Form.category(5)     // instead of T.getPlural("games.form.category", 5)
+ *
+ * // Runtime language switching
+ * Tr.currentLanguage = "en"
+ * ```
+ */
 @CacheableTask
 abstract class GenerateI18nTask : DefaultTask() {
 
+    /** Target package where the generated code should be placed. */
     @get:Input
     abstract val targetPackage: Property<String>
 
+    /** The name of the generated Kotlin object holding the translations. */
     @get:Input
     abstract val objectName: Property<String>
 
+    /** The translation JSON source files to read and merge, one set per language. */
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val sourceFiles: Property<FileCollection>
 
+    /** Directory where the generated Kotlin sources are written. */
     @get:OutputDirectory
     abstract val outputDir: DirectoryProperty
 
+    /** The fallback language code used at runtime when a translation is missing in the current language. */
     @get:Input
     abstract val fallbackLanguage: Property<String>
 
+    /**
+     * Reads and merges all [sourceFiles] JSON translations by language, then writes the generated
+     * per-language data classes and the type-safe accessor object into [outputDir].
+     */
     @TaskAction
     fun generate() {
         val jsonParser = Json { ignoreUnknownKeys = true }

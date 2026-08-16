@@ -62,6 +62,13 @@ object OctaviusI18n {
         return rule.selectForm(count)
     }
 
+    /**
+     * Resolves the appropriate plural form for a given language and fractional count.
+     *
+     * @param lang The language code (e.g. "en", "pl").
+     * @param count The fractional amount for which the plural form is evaluated.
+     * @return The plural category string (e.g., "zero", "one", "two", "few", "many", "other").
+     */
     fun selectPluralForm(lang: String, count: Double): String {
         val rule = pluralRules[lang] ?: pluralRules["en"] ?: object : PluralRule {
             override fun selectForm(count: Int) = "other"
@@ -109,6 +116,17 @@ object OctaviusI18n {
         return formatString(formTemplate, count, *args)
     }
 
+    /**
+     * Retrieves a plural translation by key from the given data set, matching the correct plural form
+     * based on the given fractional count, and formats it with arguments.
+     *
+     * @param data The TranslationData containing the map of plurals.
+     * @param lang The language code to evaluate plural rules.
+     * @param key The key to look up in the plural translations map.
+     * @param count The fractional amount used for pluralization.
+     * @param args Additional formatting arguments to be injected. The count is injected as the first argument automatically.
+     * @return The formatted translation or the key itself if not found.
+     */
     fun lookupPlural(data: TranslationData, lang: String, key: String, count: Double, vararg args: Any): String {
         val forms = data.plural[key] ?: return key
         if (count == 0.0) forms.zero?.let { return formatString(it, count, *args) }

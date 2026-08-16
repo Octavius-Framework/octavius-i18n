@@ -5,6 +5,11 @@ import kotlin.test.assertEquals
 import io.github.octaviusframework.i18n.core.OctaviusI18n
 import org.example.feature.i18n.FeatureTr
 
+/**
+ * End-to-end tests exercising the generated `Tr` / `FeatureTr` accessors against
+ * both the English and Polish translation data, including plural forms and
+ * cross-module composition.
+ */
 class I18nTest {
 
     @Test
