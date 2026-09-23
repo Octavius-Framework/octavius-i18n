@@ -30,9 +30,9 @@ class I18nPlugin : Plugin<Project> {
                         t.targetPackage.set(config.targetPackage)
                         t.objectName.set(config.objectName)
                         t.fallbackLanguage.set(config.fallbackLanguage)
-                        t.outputDir.set(target.layout.buildDirectory.dir("generated/kotlin/commonMain"))
+                        t.outputDir.set(target.layout.buildDirectory.dir("generated/i18n/${config.name}"))
 
-                        t.sourceFiles.set(config.sourceProject.orElse(target.rootProject).map { sp ->
+                        t.sourceFiles.set(config.sourceProject.orElse(target).map { sp ->
                             val fc = target.files()
                             sp.allprojects.forEach { sub ->
                                 fc.from(sub.fileTree("src") { it.include("**/i18n/*.json") })

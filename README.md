@@ -49,7 +49,7 @@ octaviusI18n {
             targetPackage = "com.yourcompany.i18n"
             objectName = "Tr"            // Optional, defaults to "Tr"
             fallbackLanguage = "en"      // Optional, defaults to "en"
-            // sourceProject = project(":other-module")  // Optional, defaults to rootProject
+            // sourceProject = project(":other-module")  // Optional, defaults to this project
         }
     }
 }
@@ -86,7 +86,7 @@ You don't need to manually run any tasks. The plugin **automatically hooks into 
 ./gradlew build
 ```
 
-The generator produces the `Tr` object — your stone tablet of localized strings, carved once, referenced everywhere. Generated sources land in `build/generated/kotlin/commonMain`.
+The generator produces the `Tr` object — your stone tablet of localized strings, carved once, referenced everywhere. Generated sources land in `build/generated/i18n/<generator name>`, one directory per generator, wiped on every run.
 
 ```kotlin
 import com.yourcompany.i18n.Tr

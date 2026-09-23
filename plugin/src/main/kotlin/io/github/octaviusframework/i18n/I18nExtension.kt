@@ -25,8 +25,10 @@ abstract class I18nGeneratorConfig @Inject constructor(val name: String, objects
     val objectName: Property<String> = objects.property(String::class.java).convention("Tr")
     
     /**
-     * The Gradle project containing the source translation JSON files.
-     * If not specified, defaults to the root project.
+     * The Gradle project containing the source translation JSON files. JSON files are collected
+     * from this project and all of its subprojects.
+     * If not specified, defaults to the project the plugin is applied to.
+     * Use `rootProject` to collect translations from the whole build.
      */
     val sourceProject: Property<Project> = objects.property(Project::class.java)
     

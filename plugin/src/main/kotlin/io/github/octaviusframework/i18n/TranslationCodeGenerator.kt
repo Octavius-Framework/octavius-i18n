@@ -180,7 +180,10 @@ abstract class GenerateI18nTask : DefaultTask() {
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val sourceFiles: Property<FileCollection>
 
-    /** Directory where the generated Kotlin sources are written. */
+    /**
+     * Directory where the generated Kotlin sources are written. Owned exclusively by this task:
+     * it is wiped before every run, so renamed objects or removed languages leave no stale files behind.
+     */
     @get:OutputDirectory
     abstract val outputDir: DirectoryProperty
 
@@ -219,13 +222,16 @@ abstract class GenerateI18nTask : DefaultTask() {
             }
         }
 
+        val outputDirFile = outputDir.get().asFile
+        outputDirFile.deleteRecursively()
+        outputDirFile.mkdirs()
+
         if (mergedByLang.isEmpty()) {
             logger.warn("No translation files found!")
             return
         }
 
         val packagePath = actualTargetPackage.replace(".", "/")
-        val outputDirFile = outputDir.get().asFile
 
         // Generate files for each language
         for ((lang, translationMap) in mergedByLang) {
