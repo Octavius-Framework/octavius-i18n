@@ -1,3 +1,12 @@
+## Version 1.1.1 (v1.1.1)
+
+### Runtime
+
+#### Fixed
+
+- **`formatString` no longer treats an argument's text as a placeholder.** `"{0} bought {1}"` with `"{1}"` and
+  `"apples"` used to give `apples bought apples`; arguments are now inserted as they are.
+
 ## Version 1.1.0 (v1.1.0)
 
 ### Plugin

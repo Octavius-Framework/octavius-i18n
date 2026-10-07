@@ -31,8 +31,14 @@ object OctaviusI18n {
         }
     )
 
+    /** Matches positional placeholders such as `{0}`, `{1}` inside a translation template. */
+    private val PLACEHOLDER = Regex("""\{(\d+)\}""")
+
     /**
      * Formats a translation template by replacing `{0}`, `{1}`, etc., with the provided arguments.
+     *
+     * The template is scanned once, so an argument whose value itself contains `{1}` is inserted as it is
+     * and never treated as a placeholder. A placeholder with no matching argument stays in the result unchanged.
      *
      * @param template The string template, e.g., "Hello {0}!"
      * @param args The arguments to inject into the template.
@@ -40,11 +46,9 @@ object OctaviusI18n {
      */
     public fun formatString(template: String, vararg args: Any): String {
         if (args.isEmpty()) return template
-        var result = template
-        args.forEachIndexed { index, arg ->
-            result = result.replace("{$index}", arg.toString())
+        return PLACEHOLDER.replace(template) { match ->
+            match.groupValues[1].toIntOrNull()?.let { args.getOrNull(it) }?.toString() ?: match.value
         }
-        return result
     }
 
     /**

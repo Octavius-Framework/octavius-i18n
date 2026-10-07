@@ -79,4 +79,16 @@ class I18nTest {
         // Submodule test via dedicated FeatureTr
         assertEquals("Zaloguj do funkcji", FeatureTr.Feature.login())
     }
+
+    @Test
+    fun `test argument values are not treated as placeholders`() {
+        OctaviusI18n.currentLanguage = "en"
+
+        // An argument containing "{1}" is inserted as it is, not replaced by the next argument
+        assertEquals("{1} bought apples", Tr.Composition.sentence("{1}", "apples"))
+        assertEquals("{1} x", OctaviusI18n.formatString("{0} {1}", "{1}", "x"))
+
+        // A placeholder with no matching argument stays unchanged
+        assertEquals("a {2}", OctaviusI18n.formatString("{0} {2}", "a"))
+    }
 }
