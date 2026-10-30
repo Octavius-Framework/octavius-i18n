@@ -156,12 +156,12 @@ private class LanguageDataGenerator(private val packageName: String, private val
  *
  * Example usage of generated code:
  * ```kotlin
- * Tr.Action.save()              // instead of T.get("action.save")
- * Tr.Form.Actions.itemLabel(1)  // instead of T.get("form.actions.itemLabel", 1)
- * Tr.Games.Form.category(5)     // instead of T.getPlural("games.form.category", 5)
+ * Tr.Legion.Orders.march()            // the string under "Legion.Orders.march"
+ * Tr.Legion.greeting("Marcus", "IX")  // {0} and {1} become parameters
+ * Tr.Legion.Units.cohort(5)           // a plural key takes the count
  *
- * // Runtime language switching
- * Tr.currentLanguage = "en"
+ * // Runtime language switching, for every generated object at once
+ * OctaviusI18n.currentLanguage = "en"
  * ```
  */
 @CacheableTask
@@ -187,7 +187,7 @@ abstract class GenerateI18nTask : DefaultTask() {
     @get:OutputDirectory
     abstract val outputDir: DirectoryProperty
 
-    /** The fallback language code used at runtime when a translation is missing in the current language. */
+    /** The language used at runtime when the current language has no translation file. */
     @get:Input
     abstract val fallbackLanguage: Property<String>
 

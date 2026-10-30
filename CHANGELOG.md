@@ -4,7 +4,7 @@
 
 #### Fixed
 
-- **`formatString` no longer treats an argument's text as a placeholder.** `"{0} bought {1}"` with `"{1}"` and
+- `formatString` no longer treats an argument's text as a placeholder. `"{0} bought {1}"` with `"{1}"` and
   `"apples"` used to give `apples bought apples`; arguments are now inserted as they are.
 
 ## Version 1.1.0 (v1.1.0)
@@ -13,16 +13,16 @@
 
 #### Changed
 
-- **A generator without `sourceProject` reads the project the plugin is applied to, not the root project.**
-  JSON files are still collected from that project and all of its subprojects, so a plugin applied in the root
-  project reads the whole build exactly as before. **A plugin applied in a subproject with no `sourceProject`
+- **[BREAKING]** A generator without `sourceProject` reads the project the plugin is applied to, not the root
+  project. JSON files are still collected from that project and all of its subprojects, so a plugin applied in the
+  root project reads the whole build exactly as before. A plugin applied in a subproject with no `sourceProject`
   used to pick up every `i18n/*.json` in the build and now picks up only its own; set
-  `sourceProject = rootProject` to keep the old behaviour.**
+  `sourceProject = rootProject` to keep the old behaviour.
 
-- **Every generator writes to its own directory, `build/generated/i18n/<generator name>`, and clears it before
-  each run.** Generators used to share `build/generated/kotlin/commonMain`, which was never cleared: renaming
-  `objectName` or dropping a language left the old files there, and they kept being compiled until a `clean`.
-  Anything that pointed at the old path by hand - an IDE source root, a build script - needs the new one.
+- **[BREAKING]** Every generator writes to its own directory, `build/generated/i18n/<generator name>`, and clears
+  it before each run. Generators used to share `build/generated/kotlin/commonMain`, which was never cleared:
+  renaming `objectName` or dropping a language left the old files there, and they kept being compiled until a
+  `clean`. Anything that pointed at the old path by hand - an IDE source root, a build script - needs the new one.
 
 ## Version 1.0.1 (v1.0.1)
 
@@ -35,7 +35,7 @@ published artifacts and the code they contain are unchanged.
 The first release: a Gradle plugin that turns `i18n/<lang>.json` files into type-safe Kotlin accessors, and
 a Kotlin Multiplatform runtime they call into.
 
-**Plugin** (`io.github.octavius-framework.i18n`)
+### Plugin
 
 - `octaviusI18n { generators { ... } }` - any number of generators per project, each with its own
   `targetPackage`, `objectName` (default `Tr`), `fallbackLanguage` (default `en`) and `sourceProject`
@@ -47,7 +47,7 @@ a Kotlin Multiplatform runtime they call into.
 - Keys are unioned across languages, so a key missing from one file still gets an accessor and renders as its
   raw path at runtime
 
-**Runtime** (`i18n-core`)
+### Runtime
 
 - `OctaviusI18n.currentLanguage` - the active language, global and switchable at runtime
 - `OctaviusI18n.pluralRules` - `PluralRule` per language, English and Polish built in, open to your own; an
