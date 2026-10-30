@@ -26,14 +26,14 @@ class I18nTest {
         assertEquals("Alice bought 1 item", Tr.Users.purchased(1, "Alice"))
         assertEquals("Alice bought 5 items", Tr.Users.purchased(5, "Alice"))
         
-        // Composition examples
+        // Composition: the verb agrees with the men, so they hold the sentence and the apples are passed in
         assertEquals(
-            "1 man bought 1 apple", 
-            Tr.Composition.sentence(Tr.Composition.men(1), Tr.Composition.apples(1))
+            "1 man bought 1 apple",
+            Tr.Composition.bought(1, Tr.Composition.apples(1))
         )
         assertEquals(
-            "3 men bought 5 apples", 
-            Tr.Composition.sentence(Tr.Composition.men(3), Tr.Composition.apples(5))
+            "3 men bought 5 apples",
+            Tr.Composition.bought(3, Tr.Composition.apples(5))
         )
         
         // Submodule test via generic Tr
@@ -59,18 +59,18 @@ class I18nTest {
         assertEquals("Bob kupił 3 przedmioty", Tr.Users.purchased(3, "Bob"))
         assertEquals("Bob kupił 5 przedmiotów", Tr.Users.purchased(5, "Bob"))
 
-        // Composition examples
+        // Composition: "kupił" agrees with one man, "kupiło" with three or five
         assertEquals(
-            "1 mężczyzna kupiło 1 jabłko", 
-            Tr.Composition.sentence(Tr.Composition.men(1), Tr.Composition.apples(1))
+            "1 mężczyzna kupił 1 jabłko",
+            Tr.Composition.bought(1, Tr.Composition.apples(1))
         )
         assertEquals(
-            "3 mężczyzn kupiło 2 jabłka", 
-            Tr.Composition.sentence(Tr.Composition.men(3), Tr.Composition.apples(2))
+            "3 mężczyzn kupiło 2 jabłka",
+            Tr.Composition.bought(3, Tr.Composition.apples(2))
         )
         assertEquals(
-            "5 mężczyzn kupiło 10 jabłek", 
-            Tr.Composition.sentence(Tr.Composition.men(5), Tr.Composition.apples(10))
+            "5 mężczyzn kupiło 10 jabłek",
+            Tr.Composition.bought(5, Tr.Composition.apples(10))
         )
 
         // Submodule test via generic Tr
