@@ -9,7 +9,7 @@ repositories {
 }
 
 dependencies {
-    implementation("io.github.octavius-framework:i18n-core:1.1.1")
+    implementation("io.github.octavius-framework:i18n-core:1.2.0")
     testImplementation(kotlin("test"))
 }
 

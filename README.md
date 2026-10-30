@@ -30,11 +30,11 @@ Both are released together on the same version:
 
 ```kotlin
 plugins {
-    id("io.github.octavius-framework.i18n") version "1.1.1"
+    id("io.github.octavius-framework.i18n") version "1.2.0"
 }
 
 dependencies {
-    implementation("io.github.octavius-framework:i18n-core:1.1.1")
+    implementation("io.github.octavius-framework:i18n-core:1.2.0")
 }
 ```
 
