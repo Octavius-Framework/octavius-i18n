@@ -51,6 +51,9 @@ The count is inserted as Kotlin prints it: `1.5`, with a point, in every languag
 
 An object that mixes these with any other key is an ordinary object.
 
+Each language lists the forms it needs, and the build does not compare them. It checks only that every language
+has the key as a plural, using the same placeholders besides the count.
+
 ## How a form is chosen
 
 1. **A count of exactly 0 takes `_zero` when the key has one**, in every language and whatever its rule says.

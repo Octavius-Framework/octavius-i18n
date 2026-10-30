@@ -8,8 +8,8 @@
 
 A Gradle plugin that turns `i18n/<lang>.json` files into a Kotlin object with one function per key, and a small
 multiplatform runtime that the generated code calls. You write `Tr.Legion.Orders.march()` rather than
-`t("Legion.Orders.march")`, so a key that no file has is a compile error rather than a string that turns up
-untranslated in production.
+`t("Legion.Orders.march")`: a key that no file has is a compile error, and a key that one language lacks stops
+the build, so neither turns up untranslated in production.
 
 The translations are compiled in. Nothing is read at runtime and there are no resource files to find, so the
 same generated code runs on every target the runtime is built for.

@@ -1,10 +1,12 @@
 package io.github.octaviusframework.i18n
 
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.FileCollection
 import org.gradle.api.provider.Property
@@ -37,8 +39,7 @@ private fun parseTranslationMap(map: Map<String, JsonElement>): Map<String, Tran
                 }
             }
             is JsonObject -> {
-                // Check if it's a plural form
-                if (element.keys.all { it in PLURAL_KEYS } && element.values.all { it is JsonPrimitive && it.isString }) {
+                if (isPluralObject(element)) {
                     val pluralForms = element.mapValues { (it.value as JsonPrimitive).content }
                     TranslationEntry.Plural(pluralForms)
                 } else {
@@ -154,6 +155,9 @@ private class LanguageDataGenerator(private val packageName: String, private val
  * - `{ObjectName}Translations{Lang}.kt` - flat maps with translations per language
  * - `{ObjectName}.kt` - registry pattern + type-safe accessors
  *
+ * The task fails, listing every problem at once, when the files cannot be generated from: a file
+ * that is not a JSON object, or files that disagree as [findInconsistencies] describes.
+ *
  * Example usage of generated code:
  * ```kotlin
  * Tr.Legion.Orders.march()            // the string under "Legion.Orders.march"
@@ -192,14 +196,15 @@ abstract class GenerateI18nTask : DefaultTask() {
     abstract val fallbackLanguage: Property<String>
 
     /**
-     * Reads and merges all [sourceFiles] JSON translations by language, then writes the generated
-     * per-language data classes and the type-safe accessor object into [outputDir].
+     * Reads all [sourceFiles] JSON translations, checks that they agree, merges them by language,
+     * then writes the generated per-language data classes and the type-safe accessor object into [outputDir].
      */
     @TaskAction
     fun generate() {
         val jsonParser = Json { ignoreUnknownKeys = true }
-        val mergedByLang = mutableMapOf<String, MutableMap<String, JsonElement>>()
-        
+        val translationFiles = mutableListOf<TranslationFile>()
+        val problems = mutableListOf<String>()
+
         val actualTargetPackage = targetPackage.get()
         val actualObjectName = objectName.get()
 
@@ -212,14 +217,26 @@ abstract class GenerateI18nTask : DefaultTask() {
                     try {
                         val sourceElement = jsonParser.parseToJsonElement(content)
                         if (sourceElement is JsonObject) {
-                            val targetMap = mergedByLang.getOrPut(lang) { mutableMapOf() }
-                            mergeJsonElements(targetMap, sourceElement)
+                            translationFiles += TranslationFile(file.path, lang, sourceElement)
+                        } else {
+                            problems += "${file.path} is not a JSON object"
                         }
-                    } catch (e: Exception) {
-                        logger.error("Failed to parse translation file: ${file.path}", e)
+                    } catch (e: SerializationException) {
+                        problems += "${file.path} is not valid JSON: ${e.message?.lineSequence()?.first()}"
                     }
                 }
             }
+        }
+
+        // Every language must have every key, in the same shape, before any of it is generated
+        problems += findInconsistencies(translationFiles)
+        if (problems.isNotEmpty()) {
+            throw GradleException(problems.joinToString("\n", prefix = "Problems in the translation files:\n") { "- $it" })
+        }
+
+        val mergedByLang = mutableMapOf<String, MutableMap<String, JsonElement>>()
+        for (file in translationFiles) {
+            mergeJsonElements(mergedByLang.getOrPut(file.lang) { mutableMapOf() }, file.root)
         }
 
         val outputDirFile = outputDir.get().asFile

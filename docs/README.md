@@ -11,8 +11,8 @@ plural form when that code runs. The pages follow that order.
 | Document                                          | Description                                                                                        |
 |:--------------------------------------------------|:---------------------------------------------------------------------------------------------------|
 | [Quickstart](quickstart.md)                       | The plugin and the runtime, a first pair of files, every generator option, and what the build does |
-| [Translation Files](translation-files.md)         | Which files are read, how a file names its language, how JSON becomes functions, placeholders      |
+| [Translation Files](translation-files.md)         | Which files are read, how JSON becomes functions, placeholders, and the files the build refuses    |
 | [Plurals](plurals.md)                             | Plural keys, how a form is chosen, the built-in rules and your own, two counts in one sentence     |
-| [Choosing the Language](choosing-the-language.md) | The current language, a language with no file, and what a key missing from one language renders as |
+| [Choosing the Language](choosing-the-language.md) | The current language, one for the whole program, and the fallback for a language with no file      |
 
 If nothing is generated yet, the [Quickstart](quickstart.md) is where to start.

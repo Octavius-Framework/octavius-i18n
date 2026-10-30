@@ -1,3 +1,19 @@
+## Version 1.2.0 (v1.2.0)
+
+### Plugin
+
+#### Changed
+
+- **[BREAKING]** The generation task fails, listing every problem at once, when the translation files disagree: a
+  key that some languages have and others lack, a key that is a string in one language and a plural in another
+  or uses other placeholders, a key defined in two files of one language, or a key that is a translation in one
+  file and a group of keys in another. A missing key used to be generated anyway and render as its path in the
+  language that lacked it; the other cases were settled silently by whichever file was read last.
+
+- **[BREAKING]** A translation file that is not valid JSON, or whose top level is not an object, fails the
+  generation task. It used to be logged and skipped: the keys it held rendered as their paths in its language, or
+  the whole language fell back to `fallbackLanguage` if it was the only file.
+
 ## Version 1.1.1 (v1.1.1)
 
 ### Runtime

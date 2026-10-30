@@ -34,17 +34,8 @@ Tr.Legion.Orders.march()             // "March!", from en.json
 
 Each generator has its own `fallbackLanguage`, so two objects can fall back to different languages.
 
-## A key missing from a language
-
-A language that has a file but not the key is not filled in from the fallback. The accessor returns the key's
-path:
-
-```kotlin
-OctaviusI18n.currentLanguage = "en"   // en.json has no Orders.retreat
-Tr.Legion.Orders.retreat()            // "Legion.Orders.retreat"
-```
-
-`fallbackLanguage` stands in for a whole language, never for a single key.
+The fallback stands in for a whole language, never for a single key: a language that has a file has every key,
+or the build would have stopped. See [Translation Files](translation-files.md#one-key-every-language).
 
 ## Plural rules
 

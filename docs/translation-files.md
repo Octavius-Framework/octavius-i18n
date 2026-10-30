@@ -6,7 +6,7 @@ letter: the gods in one place, the heavens in another. A word was found under it
 the same in both languages.*
 
 A translation file is a JSON object named after its language. Its nesting is the shape of the generated object,
-and it has to be the same shape in every language.
+and it has to be the same shape in every language: files that disagree stop the build.
 
 Contents:
 * [Which files a generator reads](#which-files-a-generator-reads)
@@ -52,11 +52,11 @@ The file name without `.json` is the language code: `pl.json` is `"pl"`, `pt-BR.
 against `OctaviusI18n.currentLanguage` exactly, case included.
 
 All files of one language are merged into one tree, object into object, so `Legion.Orders` can come from one
-module and `Legion.Units` from another. The same key in two files of one language is not an error: one of them
-wins, without a warning. Keep each key in one file.
+module and `Legion.Units` from another. Each key has to be in exactly one of them: the same key in two files of
+one language stops the build, and so does a key that is a translation in one file and a group of keys in
+another.
 
-A file that does not parse as JSON is logged as an error and skipped, and the build goes on without it. If it was
-a language's only file, that language has no file at all.
+A file that does not parse as JSON, or whose top level is not an object, stops the build too.
 
 ## From JSON to Kotlin
 
@@ -111,19 +111,18 @@ Tr.Legion.greeting("Marcus", "IX")   // "Ave, Marcus! Witaj w legionie IX."
 
 ## One key, every language
 
-Accessors are generated from the union of all languages: a key present in any file gets a function. In a
-language whose file lacks it, the function returns the key's path:
+A key is one function for all languages, so **every language must have every key, in the same shape**: a string
+in all of them or a plural in all of them, using the same placeholders. The order of the placeholders is free,
+and so, in a plural, is the count; the forms of a plural are each language's own.
 
-```kotlin
-// "retreat" is in pl.json only
-OctaviusI18n.currentLanguage = "en"
-Tr.Legion.Orders.retreat()   // "Legion.Orders.retreat"
+Anything else stops the build, with every problem listed at once:
+
+```
+> Problems in the translation files:
+  - en has no `Legion.Orders.retreat`
+  - `Legion.greeting` is not the same in every language: a string using {0}, {1} in en; a string using {0} in pl
 ```
 
-A translation missing from one language therefore shows up as its path rather than failing the build. It is not
-taken from the fallback language either; see
-[Choosing the Language](choosing-the-language.md#a-key-missing-from-a-language).
-
-Because one function serves every language, **a key must have the same shape in each**: a string everywhere or a
-plural everywhere, with the same placeholders. Nothing checks this. The signature comes from one of the files,
-and a language that disagrees with it renders wrong.
+The check covers everything a generator reads. A generator in the root project reads every module, so every
+module has to carry every language that any of them has. Until a translation is ready, its key still has to hold
+something in that language: the text of another one, for instance.

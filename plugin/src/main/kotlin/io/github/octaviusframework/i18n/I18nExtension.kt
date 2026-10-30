@@ -33,8 +33,8 @@ abstract class I18nGeneratorConfig @Inject constructor(val name: String, objects
     val sourceProject: Property<Project> = objects.property(Project::class.java)
     
     /**
-     * The language used when `OctaviusI18n.currentLanguage` has no translation file. A key missing from a
-     * language that does have a file is not looked up here: its accessor returns the key's path.
+     * The language used when `OctaviusI18n.currentLanguage` has no translation file. A language that has
+     * one has every key, since the generation task refuses files that disagree.
      * Default: `en`
      */
     val fallbackLanguage: Property<String> = objects.property(String::class.java).convention("en")

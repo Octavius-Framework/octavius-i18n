@@ -136,6 +136,10 @@ Each generator is a task named `generateI18nAccessors` followed by the generator
 capitalised — `generateI18nAccessorsMain` above. It writes to `build/generated/i18n/<generator name>` and clears
 that directory before every run, so a renamed object or a dropped language leaves nothing behind.
 
+Before writing anything, it checks the files against each other. A key that one language lacks, or that is a
+string in one language and a plural in another, stops the build with a list of every such problem — see
+[Translation Files](translation-files.md#one-key-every-language).
+
 The directory is added to the `main` source set of a Kotlin JVM project, or to `commonMain` of a Kotlin
 Multiplatform one. A project with neither Kotlin plugin still gets the task, but nothing compiles what it writes.
 
@@ -143,4 +147,4 @@ Multiplatform one. A project with neither Kotlin plugin still gets the task, but
 
 - [Translation Files](translation-files.md) — which files a generator reads, naming, placeholders, modules
 - [Plurals](plurals.md) — how a form is chosen, and a rule for a language that has none built in
-- [Choosing the Language](choosing-the-language.md) — the fallback language, and keys one language lacks
+- [Choosing the Language](choosing-the-language.md) — one language for the whole program, and the fallback
