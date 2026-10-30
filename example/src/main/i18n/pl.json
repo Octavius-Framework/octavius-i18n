@@ -17,11 +17,11 @@
     }
   },
   "composition": {
-    "men": {
-      "_one": "1 mężczyzna",
-      "_few": "{0} mężczyzn",
-      "_many": "{0} mężczyzn",
-      "_other": "{0} mężczyzn"
+    "bought": {
+      "_one": "{0} mężczyzna kupił {1}",
+      "_few": "{0} mężczyzn kupiło {1}",
+      "_many": "{0} mężczyzn kupiło {1}",
+      "_other": "{0} mężczyzny kupiło {1}"
     },
     "apples": {
       "_one": "1 jabłko",
@@ -29,6 +29,6 @@
       "_many": "{0} jabłek",
       "_other": "{0} jabłek"
     },
-    "sentence": "{0} kupiło {1}"
+    "sentence": "{0} kupił {1}"
   }
 }

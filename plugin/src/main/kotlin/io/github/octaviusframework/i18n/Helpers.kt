@@ -2,6 +2,7 @@ package io.github.octaviusframework.i18n
 
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 /**
  * Represents the type of a translation entry in JSON.
@@ -25,6 +26,14 @@ internal val PLURAL_KEYS = setOf("_zero", "_one", "_two", "_few", "_many", "_oth
 
 /** Matches positional placeholders such as `{0}`, `{1}` inside a translation template. */
 internal val PARAM_REGEX = Regex("""\{(\d+)\}""")
+
+/**
+ * Checks if a JSON object is a plural form group rather than a nested object: every key is a
+ * plural form suffix and every value a string.
+ */
+internal fun isPluralObject(obj: JsonObject): Boolean {
+    return obj.keys.all { it in PLURAL_KEYS } && obj.values.all { it is JsonPrimitive && it.isString }
+}
 
 /**
  * Converts snake_case or kebab-case to PascalCase.

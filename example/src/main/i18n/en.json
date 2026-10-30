@@ -13,9 +13,9 @@
     }
   },
   "composition": {
-    "men": {
-      "_one": "1 man",
-      "_other": "{0} men"
+    "bought": {
+      "_one": "{0} man bought {1}",
+      "_other": "{0} men bought {1}"
     },
     "apples": {
       "_one": "1 apple",

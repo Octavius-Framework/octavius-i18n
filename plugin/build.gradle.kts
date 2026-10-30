@@ -18,6 +18,11 @@ dependencies {
     compileOnly(gradleApi())
     implementation(libs.kotlinx.serialization.json)
     compileOnly(kotlin("gradle-plugin", libs.versions.kotlin.get()))
+    testImplementation(kotlin("test"))
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 gradlePlugin {
