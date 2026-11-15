@@ -1,17 +1,19 @@
 package io.github.octaviusframework.i18n.core
 
+import kotlin.math.abs
+
 /**
  * Main utility object for Octavius I18n plugin.
- * Handles current language state, plural rules, and formatting translations.
+ * Handles current language state and plural rules.
  */
 object OctaviusI18n {
-    
+
     /**
      * The currently selected language code (e.g. "en", "pl").
      * Change this property to switch the application's locale at runtime.
      */
     var currentLanguage: String = "en"
-    
+
     /**
      * Map of available plural rules by language code.
      * Contains built-in rules for English and Polish by default.
@@ -31,29 +33,9 @@ object OctaviusI18n {
         }
     )
 
-    /** Matches positional placeholders such as `{0}`, `{1}` inside a translation template. */
-    private val PLACEHOLDER = Regex("""\{(\d+)\}""")
-
-    /**
-     * Formats a translation template by replacing `{0}`, `{1}`, etc., with the provided arguments.
-     *
-     * The template is scanned once, so an argument whose value itself contains `{1}` is inserted as it is
-     * and never treated as a placeholder. A placeholder with no matching argument stays in the result unchanged.
-     *
-     * @param template The string template, e.g., "Hello {0}!"
-     * @param args The arguments to inject into the template.
-     * @return The formatted string.
-     */
-    public fun formatString(template: String, vararg args: Any): String {
-        if (args.isEmpty()) return template
-        return PLACEHOLDER.replace(template) { match ->
-            match.groupValues[1].toIntOrNull()?.let { args.getOrNull(it) }?.toString() ?: match.value
-        }
-    }
-
     /**
      * Resolves the appropriate plural form for a given language and integer count.
-     * 
+     *
      * @param lang The language code (e.g. "en", "pl").
      * @param count The integer amount for which the plural form is evaluated.
      * @return The plural category string (e.g., "zero", "one", "two", "few", "many", "other").
@@ -82,67 +64,23 @@ object OctaviusI18n {
     }
 
     /**
-     * Retrieves a simple translation by key from the given data set and formats it with arguments.
-     * 
-     * @param data The TranslationData containing the map of strings.
-     * @param key The key to look up in the simple translations map.
-     * @param args Formatting arguments to be injected into the result.
-     * @return The formatted translation or the key itself if not found.
+     * Resolves the plural form for [count] of any number type. Whole number types are counted as an `Int`, a
+     * `Long` beyond the `Int` range by its last nine digits, and `Double` and `Float` as fractions. Kotlin/JS
+     * cannot tell `1.0` from `1`, so there a `Double` with no fractional part is a whole number.
      */
-    fun lookup(data: TranslationData, key: String, vararg args: Any): String {
-        val template = data.simple[key] ?: return key
-        return formatString(template, *args)
+    fun selectPluralForm(lang: String, count: Number): String {
+        if (count is Long) return selectPluralForm(lang, countable(count))
+        val hasFraction = count.toDouble() != count.toLong().toDouble()
+        val fraction = if (untypedNumbers) hasFraction else count is Double || count is Float || hasFraction
+        return if (fraction) selectPluralForm(lang, count.toDouble()) else selectPluralForm(lang, countable(count.toLong()))
     }
 
-    /**
-     * Retrieves a plural translation by key from the given data set, matching the correct plural form 
-     * based on the given integer count, and formats it with arguments.
-     * 
-     * @param data The TranslationData containing the map of plurals.
-     * @param lang The language code to evaluate plural rules.
-     * @param key The key to look up in the plural translations map.
-     * @param count The integer amount used for pluralization.
-     * @param args Additional formatting arguments to be injected. The count is injected as the first argument automatically.
-     * @return The formatted translation or the key itself if not found.
-     */
-    fun lookupPlural(data: TranslationData, lang: String, key: String, count: Int, vararg args: Any): String {
-        val forms = data.plural[key] ?: return key
-        if (count == 0) forms.zero?.let { return formatString(it, count, *args) }
-        val formName = selectPluralForm(lang, count)
-        val formTemplate = when (formName) {
-            "zero" -> forms.zero
-            "one" -> forms.one
-            "two" -> forms.two
-            "few" -> forms.few
-            "many" -> forms.many
-            else -> forms.other
-        } ?: forms.other
-        return formatString(formTemplate, count, *args)
-    }
+    /** True on Kotlin/JS, where every number passes both `is Int` and `is Double`. */
+    private val untypedNumbers: Boolean = isInt(1.5)
 
-    /**
-     * Retrieves a plural translation by key from the given data set, matching the correct plural form
-     * based on the given fractional count, and formats it with arguments.
-     *
-     * @param data The TranslationData containing the map of plurals.
-     * @param lang The language code to evaluate plural rules.
-     * @param key The key to look up in the plural translations map.
-     * @param count The fractional amount used for pluralization.
-     * @param args Additional formatting arguments to be injected. The count is injected as the first argument automatically.
-     * @return The formatted translation or the key itself if not found.
-     */
-    fun lookupPlural(data: TranslationData, lang: String, key: String, count: Double, vararg args: Any): String {
-        val forms = data.plural[key] ?: return key
-        if (count == 0.0) forms.zero?.let { return formatString(it, count, *args) }
-        val formName = selectPluralForm(lang, count)
-        val formTemplate = when (formName) {
-            "zero" -> forms.zero
-            "one" -> forms.one
-            "two" -> forms.two
-            "few" -> forms.few
-            "many" -> forms.many
-            else -> forms.other
-        } ?: forms.other
-        return formatString(formTemplate, count, *args)
-    }
+    private fun isInt(number: Number) = number is Int
+
+    /** [whole] as an `Int` with the same last nine digits, kept above 10^9 when it does not fit. */
+    private fun countable(whole: Long): Int =
+        if (whole in Int.MIN_VALUE..Int.MAX_VALUE) whole.toInt() else (1_000_000_000 + abs(whole % 1_000_000_000)).toInt()
 }

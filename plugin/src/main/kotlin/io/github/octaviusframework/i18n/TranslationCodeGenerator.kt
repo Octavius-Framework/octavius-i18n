@@ -2,9 +2,7 @@ package io.github.octaviusframework.i18n
 
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.file.DirectoryProperty
@@ -21,147 +19,19 @@ import java.io.File
 import java.nio.charset.StandardCharsets
 
 /**
- * Parses a flat map of JSON elements into a tree of [TranslationEntry] values, detecting
- * parameterized templates (`{0}`, `{1}`, ...), plural form groups, and nested objects along the way.
- */
-private fun parseTranslationMap(map: Map<String, JsonElement>): Map<String, TranslationEntry> {
-    val result = mutableMapOf<String, TranslationEntry>()
-
-    for ((key, element) in map) {
-        result[key] = when (element) {
-            is JsonPrimitive -> {
-                val value = element.content
-                val params = PARAM_REGEX.findAll(value).map { it.groupValues[1].toInt() }.toList()
-                if (params.isNotEmpty()) {
-                    TranslationEntry.Parameterized(value, params.max() + 1)
-                } else {
-                    TranslationEntry.Simple(value)
-                }
-            }
-            is JsonObject -> {
-                if (isPluralObject(element)) {
-                    val pluralForms = element.mapValues { (it.value as JsonPrimitive).content }
-                    TranslationEntry.Plural(pluralForms)
-                } else {
-                    TranslationEntry.Nested(parseTranslationMap(element))
-                }
-            }
-            else -> TranslationEntry.Simple(element.toString())
-        }
-    }
-
-    return result
-}
-
-/**
- * Flattens the translation tree into flat maps.
- */
-private fun flattenTranslations(
-    entries: Map<String, TranslationEntry>,
-    prefix: String = ""
-): Pair<Map<String, String>, Map<String, Map<String, String>>> {
-    val simple = mutableMapOf<String, String>()
-    val plural = mutableMapOf<String, Map<String, String>>()
-
-    for ((key, entry) in entries) {
-        val fullKey = if (prefix.isEmpty()) key else "$prefix.$key"
-
-        when (entry) {
-            is TranslationEntry.Simple -> simple[fullKey] = entry.value
-            is TranslationEntry.Parameterized -> simple[fullKey] = entry.value
-            is TranslationEntry.Plural -> plural[fullKey] = entry.forms
-            is TranslationEntry.Nested -> {
-                val (childSimple, childPlural) = flattenTranslations(entry.children, fullKey)
-                simple.putAll(childSimple)
-                plural.putAll(childPlural)
-            }
-        }
-    }
-
-    return simple to plural
-}
-
-/**
- * Escapes a string for use in Kotlin code.
- */
-private fun escapeString(s: String): String {
-    return s.replace("\\", "\\\\")
-        .replace("\"", "\\\"")
-        .replace("\n", "\\n")
-        .replace("\r", "\\r")
-        .replace("\t", "\\t")
-        .replace("$", "\\$")
-}
-
-/**
- * Generates a file with translation data for a specific language.
- */
-private class LanguageDataGenerator(private val packageName: String, private val objectName: String) {
-
-    /**
-     * Renders the `{objectName}Translations{Lang}.kt` source file contents for a single language,
-     * embedding its flattened simple and plural translation maps as a [io.github.octaviusframework.i18n.core.TranslationData] object.
-     */
-    fun generate(lang: String, simple: Map<String, String>, plural: Map<String, Map<String, String>>): String {
-        val langPascal = toPascalCase(lang)
-        val className = "${objectName}Translations$langPascal"
-        val builder = StringBuilder()
-
-        builder.appendLine("@file:Suppress(\"unused\", \"RedundantVisibilityModifier\")")
-        builder.appendLine()
-        builder.appendLine("package $packageName")
-        builder.appendLine()
-        builder.appendLine("/**")
-        builder.appendLine(" * Translation data for language: $lang")
-        builder.appendLine(" *")
-        builder.appendLine(" * This file is auto-generated. Do not edit manually.")
-        builder.appendLine(" */")
-        builder.appendLine("public object $className : io.github.octaviusframework.i18n.core.TranslationData {")
-        builder.appendLine()
-
-        // Simple translations
-        builder.appendLine("    override val simple: kotlin.collections.Map<kotlin.String, kotlin.String> = mapOf(")
-        simple.entries.sortedBy { it.key }.forEachIndexed { index, (key, value) ->
-            val comma = if (index < simple.size - 1) "," else ""
-            builder.appendLine("        \"$key\" to \"${escapeString(value)}\"$comma")
-        }
-        builder.appendLine("    )")
-        builder.appendLine()
-
-        // Plural translations
-        builder.appendLine("    override val plural: kotlin.collections.Map<kotlin.String, io.github.octaviusframework.i18n.core.PluralForms> = mapOf(")
-        plural.entries.sortedBy { it.key }.forEachIndexed { index, (key, forms) ->
-            val comma = if (index < plural.size - 1) "," else ""
-            val zero = forms["_zero"]?.let { "\"${escapeString(it)}\"" } ?: "null"
-            val one = forms["_one"]?.let { "\"${escapeString(it)}\"" } ?: "null"
-            val two = forms["_two"]?.let { "\"${escapeString(it)}\"" } ?: "null"
-            val few = forms["_few"]?.let { "\"${escapeString(it)}\"" } ?: "null"
-            val many = forms["_many"]?.let { "\"${escapeString(it)}\"" } ?: "null"
-            val other = forms["_other"]?.let { "\"${escapeString(it)}\"" } ?: "\"$key\""
-            builder.appendLine("        \"$key\" to io.github.octaviusframework.i18n.core.PluralForms($zero, $one, $two, $few, $many, $other)$comma")
-        }
-        builder.appendLine("    )")
-        builder.appendLine("}")
-
-        return builder.toString()
-    }
-}
-
-
-/**
  * Gradle task that generates type-safe Kotlin classes from JSON translation files.
  *
  * Generated files:
- * - `{ObjectName}Translations{Lang}.kt` - flat maps with translations per language
- * - `{ObjectName}.kt` - registry pattern + type-safe accessors
+ * - `{ObjectName}Translations{Lang}.kt` - one language's translations compiled to functions
+ * - `{ObjectName}.kt` - the accessor object and the interface every language implements
  *
  * The task fails, listing every problem at once, when the files cannot be generated from: a file
- * that is not a JSON object, or files that disagree as [findInconsistencies] describes.
+ * that is not a JSON object, or the problems [readTranslations] describes.
  *
  * Example usage of generated code:
  * ```kotlin
  * Tr.Legion.Orders.march()            // the string under "Legion.Orders.march"
- * Tr.Legion.greeting("Marcus", "IX")  // {0} and {1} become parameters
+ * Tr.Legion.greeting("IX", "Marcus")  // {legion} and {name} become parameters
  * Tr.Legion.Units.cohort(5)           // a plural key takes the count
  *
  * // Runtime language switching, for every generated object at once
@@ -196,13 +66,13 @@ abstract class GenerateI18nTask : DefaultTask() {
     abstract val fallbackLanguage: Property<String>
 
     /**
-     * Reads all [sourceFiles] JSON translations, checks that they agree, merges them by language,
-     * then writes the generated per-language data classes and the type-safe accessor object into [outputDir].
+     * Reads all [sourceFiles] JSON translations, checks that they can be generated, then writes each language's
+     * translations and the type-safe accessor object into [outputDir].
      */
     @TaskAction
     fun generate() {
-        val jsonParser = Json { ignoreUnknownKeys = true }
         val translationFiles = mutableListOf<TranslationFile>()
+        val unreadable = mutableSetOf<String>()
         val problems = mutableListOf<String>()
 
         val actualTargetPackage = targetPackage.get()
@@ -215,85 +85,67 @@ abstract class GenerateI18nTask : DefaultTask() {
                 if (content.isNotBlank()) {
                     logger.info("Found translation for '$lang' in ${file.path}")
                     try {
-                        val sourceElement = jsonParser.parseToJsonElement(content)
+                        val sourceElement = Json.parseToJsonElement(content)
                         if (sourceElement is JsonObject) {
                             translationFiles += TranslationFile(file.path, lang, sourceElement)
                         } else {
                             problems += "${file.path} is not a JSON object"
+                            unreadable += lang
                         }
                     } catch (e: SerializationException) {
-                        problems += "${file.path} is not valid JSON: ${e.message?.lineSequence()?.first()}"
+                        problems += invalidJson(file.path, content, e)
+                        unreadable += lang
                     }
                 }
             }
         }
 
-        // Every language must have every key, in the same shape, before any of it is generated
-        problems += findInconsistencies(translationFiles)
+        // Every language must have every key, and every key must be a message, before any of it is generated
+        val translations = readTranslations(translationFiles, unreadable)
+        problems += translations.problems
         if (problems.isNotEmpty()) {
             throw GradleException(problems.joinToString("\n", prefix = "Problems in the translation files:\n") { "- $it" })
-        }
-
-        val mergedByLang = mutableMapOf<String, MutableMap<String, JsonElement>>()
-        for (file in translationFiles) {
-            mergeJsonElements(mergedByLang.getOrPut(file.lang) { mutableMapOf() }, file.root)
         }
 
         val outputDirFile = outputDir.get().asFile
         outputDirFile.deleteRecursively()
         outputDirFile.mkdirs()
 
-        if (mergedByLang.isEmpty()) {
+        if (translations.languages.isEmpty()) {
             logger.warn("No translation files found!")
             return
         }
 
-        val packagePath = actualTargetPackage.replace(".", "/")
+        val packageDir = File(outputDirFile, actualTargetPackage.replace(".", "/"))
+        packageDir.mkdirs()
 
-        // Generate files for each language
-        for ((lang, translationMap) in mergedByLang) {
+        for (lang in translations.languages) {
             logger.lifecycle("Generating translations for language: $lang")
-
-            val entries = parseTranslationMap(translationMap)
-            val (simpleMap, pluralMap) = flattenTranslations(entries)
-
-            // Generate {ObjectName}Translations{Lang}.kt
-            val langGenerator = LanguageDataGenerator(actualTargetPackage, actualObjectName)
-            val langCode = langGenerator.generate(lang, simpleMap, pluralMap)
-            val langFile = File(outputDirFile, "$packagePath/${actualObjectName}Translations${toPascalCase(lang)}.kt")
-            langFile.parentFile.mkdirs()
-            langFile.writeText(langCode, StandardCharsets.UTF_8)
+            val langFile = File(packageDir, "${actualObjectName}Translations${toPascalCase(lang)}.kt")
+            langFile.writeText(languageSource(actualTargetPackage, actualObjectName, lang, translations.keys), StandardCharsets.UTF_8)
             logger.lifecycle("Generated: ${langFile.path}")
         }
 
-        // Generate Tr.kt (we use the first language as default language for runtime)
-        val defaultLang = fallbackLanguage.get()
-        val allLangs = mergedByLang.keys.toList()
-
-        // Build a union of all translation maps to ensure ALL keys are generated
-        val unionMap = mutableMapOf<String, JsonElement>()
-        mergedByLang.values.forEach { langMap ->
-            mergeJsonElements(unionMap, JsonObject(langMap))
-        }
-        val entries = parseTranslationMap(unionMap)
-
-        val trGenerator = TrGenerator(actualTargetPackage, actualObjectName)
-        val trCode = trGenerator.generate(entries, defaultLang, allLangs)
-        val trFile = File(outputDirFile, "$packagePath/$actualObjectName.kt")
-        trFile.writeText(trCode, StandardCharsets.UTF_8)
+        val trFile = File(packageDir, "$actualObjectName.kt")
+        trFile.writeText(TrGenerator(actualTargetPackage, actualObjectName).generate(translations, fallbackLanguage.get()), StandardCharsets.UTF_8)
         logger.lifecycle("Generated: ${trFile.path}")
 
-        // Statistics
-        fun countFunctions(entries: Map<String, TranslationEntry>): Int {
-            return entries.values.sumOf { entry ->
-                when (entry) {
-                    is TranslationEntry.Nested -> countFunctions(entry.children)
-                    else -> 1
-                }
-            }
-        }
-        val functionCount = countFunctions(entries)
-        val (simpleCount, pluralCount) = flattenTranslations(entries)
-        logger.lifecycle("Generated $functionCount accessors (${simpleCount.size} simple, ${pluralCount.size} plural)")
+        logger.lifecycle("Generated ${translations.keys.size} accessors")
     }
+}
+
+private val JSON_ERROR = Regex("""^Unexpected JSON token at offset (\d+): (.*?)(?: at path: \S*)?$""")
+
+/**
+ * The problem kotlinx.serialization found in the file at [path], as `path:line:column` and the reason, which the
+ * IDE links to the place. Its message counts a character offset, and the lines after the first repeat the input
+ * and advise on `Json {}` settings.
+ */
+internal fun invalidJson(path: String, content: String, e: SerializationException): String {
+    val first = e.message?.lineSequence()?.first().orEmpty()
+    val match = JSON_ERROR.find(first) ?: return "$path is not valid JSON: $first"
+    val offset = match.groupValues[1].toInt().coerceAtMost(content.length)
+    val line = content.take(offset).count { it == '\n' } + 1
+    val column = offset - (content.lastIndexOf('\n', offset - 1) + 1) + 1
+    return "$path:$line:$column is not valid JSON: ${match.groupValues[2]}"
 }

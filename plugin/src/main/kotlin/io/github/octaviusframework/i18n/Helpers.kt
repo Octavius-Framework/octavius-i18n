@@ -1,40 +1,5 @@
 package io.github.octaviusframework.i18n
 
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-
-/**
- * Represents the type of a translation entry in JSON.
- */
-internal sealed class TranslationEntry {
-    /** Simple text without parameters */
-    data class Simple(val value: String) : TranslationEntry()
-
-    /** Text with parameters {0}, {1}, ... */
-    data class Parameterized(val value: String, val paramCount: Int) : TranslationEntry()
-
-    /** Plural form (one/few/many) */
-    data class Plural(val forms: Map<String, String>) : TranslationEntry()
-
-    /** Nested object */
-    data class Nested(val children: Map<String, TranslationEntry>) : TranslationEntry()
-}
-
-/** JSON object keys recognized as plural form suffixes (e.g. `_one`, `_few`). */
-internal val PLURAL_KEYS = setOf("_zero", "_one", "_two", "_few", "_many", "_other")
-
-/** Matches positional placeholders such as `{0}`, `{1}` inside a translation template. */
-internal val PARAM_REGEX = Regex("""\{(\d+)\}""")
-
-/**
- * Checks if a JSON object is a plural form group rather than a nested object: every key is a
- * plural form suffix and every value a string.
- */
-internal fun isPluralObject(obj: JsonObject): Boolean {
-    return obj.keys.all { it in PLURAL_KEYS } && obj.values.all { it is JsonPrimitive && it.isString }
-}
-
 /**
  * Converts snake_case or kebab-case to PascalCase.
  */
@@ -74,19 +39,13 @@ internal fun isKotlinKeyword(name: String): Boolean {
 }
 
 /**
- * Recursively merges [source] into [target] in place. Nested JSON objects are merged
- * key by key instead of being replaced wholesale, so translations split across multiple
- * files can contribute to the same nested structure.
+ * Escapes a string for use inside a Kotlin string literal.
  */
-internal fun mergeJsonElements(target: MutableMap<String, JsonElement>, source: JsonObject) {
-    for ((key, sourceValue) in source) {
-        val targetValue = target[key]
-        if (sourceValue is JsonObject && targetValue is JsonObject) {
-            val newTarget = targetValue.toMutableMap()
-            mergeJsonElements(newTarget, sourceValue)
-            target[key] = JsonObject(newTarget)
-        } else {
-            target[key] = sourceValue
-        }
-    }
+internal fun escapeString(s: String): String {
+    return s.replace("\\", "\\\\")
+        .replace("\"", "\\\"")
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+        .replace("$", "\\$")
 }

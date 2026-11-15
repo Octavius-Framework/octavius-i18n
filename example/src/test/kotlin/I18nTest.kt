@@ -3,6 +3,7 @@ package org.example.i18n
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import io.github.octaviusframework.i18n.core.OctaviusI18n
+import io.github.octaviusframework.i18n.core.PluralRule
 import org.example.feature.i18n.FeatureTr
 
 /**
@@ -84,11 +85,67 @@ class I18nTest {
     fun `test argument values are not treated as placeholders`() {
         OctaviusI18n.currentLanguage = "en"
 
-        // An argument containing "{1}" is inserted as it is, not replaced by the next argument
-        assertEquals("{1} bought apples", Tr.Composition.sentence("{1}", "apples"))
-        assertEquals("{1} x", OctaviusI18n.formatString("{0} {1}", "{1}", "x"))
+        // An argument containing "{what}" or "{name}" is inserted as it is, not replaced by another argument
+        assertEquals("{what} bought apples", Tr.Composition.sentence(who = "{what}", what = "apples"))
+        assertEquals("{name} joined", Tr.Users.joined("female", "{name}"))
+    }
 
-        // A placeholder with no matching argument stays unchanged
-        assertEquals("a {2}", OctaviusI18n.formatString("{0} {2}", "a"))
+    @Test
+    fun `test a select chooses by a string, and a language that does not need it ignores it`() {
+        OctaviusI18n.currentLanguage = "pl"
+        assertEquals("Anna dołączyła", Tr.Users.joined("female", "Anna"))
+        assertEquals("Jan dołączył", Tr.Users.joined("male", "Jan"))
+
+        OctaviusI18n.currentLanguage = "en"
+        assertEquals("Anna joined", Tr.Users.joined("female", "Anna"))
+        assertEquals("Jan joined", Tr.Users.joined(gender = "male", name = "Jan"))
+    }
+
+    @Test
+    fun `test a plural nested in a select, with an exact zero`() {
+        OctaviusI18n.currentLanguage = "pl"
+        assertEquals("Anna nikogo nie zaprosiła", Tr.Users.invited(0, "female", "Anna"))
+        assertEquals("Anna zaprosiła 1 znajomego", Tr.Users.invited(1, "female", "Anna"))
+        assertEquals("Anna zaprosiła 3 znajomych", Tr.Users.invited(3, "female", "Anna"))
+        assertEquals("Jan nikogo nie zaprosił", Tr.Users.invited(0.0, "male", "Jan"))
+        assertEquals("Jan zaprosił 5 znajomych", Tr.Users.invited(5, "male", "Jan"))
+        assertEquals("Jan zaprosił 1.5 znajomego", Tr.Users.invited(1.5, "male", "Jan"))
+
+        OctaviusI18n.currentLanguage = "en"
+        assertEquals("Anna invited nobody", Tr.Users.invited(0, "female", "Anna"))
+        assertEquals("Anna invited 1 friend", Tr.Users.invited(1, "female", "Anna"))
+        assertEquals("Anna invited 2 friends", Tr.Users.invited(2, "female", "Anna"))
+    }
+
+    @Test
+    fun `test a count of any number type`() {
+        OctaviusI18n.currentLanguage = "pl"
+        assertEquals("Bob kupił 3 przedmioty", Tr.Users.purchased(3L, "Bob"))
+        assertEquals("Bob kupił 3 przedmioty", Tr.Users.purchased(3.toShort(), "Bob"))
+        // Beyond Int, the last digits still decide: 3 000 000 002 ends in 2, as 2 does
+        assertEquals("Bob kupił 3000000002 przedmioty", Tr.Users.purchased(3_000_000_002L, "Bob"))
+        assertEquals("Bob kupił 1.5 przedmiotów", Tr.Users.purchased(1.5, "Bob"))
+        assertEquals("Bob kupił 1.5 przedmiotów", Tr.Users.purchased(1.5f, "Bob"))
+
+        // `=0` is used for exactly 0 in a language that has it, and the rule decides in one that does not
+        OctaviusI18n.currentLanguage = "en"
+        assertEquals("No users", Tr.Users.count(0))
+        assertEquals("No users", Tr.Users.count(0.0))
+        OctaviusI18n.currentLanguage = "pl"
+        assertEquals("0 użytkowników", Tr.Users.count(0))
+    }
+
+    @Test
+    fun `test a language with no file is counted by the rule of the language it falls back to`() {
+        OctaviusI18n.pluralRules["de"] = object : PluralRule {
+            override fun selectForm(count: Int) = "one"
+            override fun selectForm(count: Double) = "one"
+        }
+        try {
+            OctaviusI18n.currentLanguage = "de"
+            assertEquals("5 users", Tr.Users.count(5))
+        } finally {
+            OctaviusI18n.pluralRules.remove("de")
+        }
     }
 }

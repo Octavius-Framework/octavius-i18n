@@ -1,34 +1,62 @@
 {
   "hello": "Cześć",
-  "welcome": "Witaj {0}",
+  "welcome": "Witaj {name}",
   "users": {
     "active": "Aktywni użytkownicy",
     "count": {
-      "_one": "{0} użytkownik",
-      "_few": "{0} użytkowników",
-      "_many": "{0} użytkowników",
-      "_other": "{0} użytkowników"
+      "$plural": "count",
+      "one": "{count} użytkownik",
+      "few": "{count} użytkowników",
+      "many": "{count} użytkowników",
+      "other": "{count} użytkowników"
     },
     "purchased": {
-      "_one": "{1} kupił {0} przedmiot",
-      "_few": "{1} kupił {0} przedmioty",
-      "_many": "{1} kupił {0} przedmiotów",
-      "_other": "{1} kupił {0} przedmiotów"
+      "$plural": "count",
+      "one": "{name} kupił {count} przedmiot",
+      "few": "{name} kupił {count} przedmioty",
+      "many": "{name} kupił {count} przedmiotów",
+      "other": "{name} kupił {count} przedmiotów"
+    },
+    "joined": {
+      "$select": "gender",
+      "female": "{name} dołączyła",
+      "other": "{name} dołączył"
+    },
+    "invited": {
+      "$select": "gender",
+      "female": {
+        "$plural": "count",
+        "=0": "{name} nikogo nie zaprosiła",
+        "one": "{name} zaprosiła {count} znajomego",
+        "few": "{name} zaprosiła {count} znajomych",
+        "many": "{name} zaprosiła {count} znajomych",
+        "other": "{name} zaprosiła {count} znajomego"
+      },
+      "other": {
+        "$plural": "count",
+        "=0": "{name} nikogo nie zaprosił",
+        "one": "{name} zaprosił {count} znajomego",
+        "few": "{name} zaprosił {count} znajomych",
+        "many": "{name} zaprosił {count} znajomych",
+        "other": "{name} zaprosił {count} znajomego"
+      }
     }
   },
   "composition": {
     "bought": {
-      "_one": "{0} mężczyzna kupił {1}",
-      "_few": "{0} mężczyzn kupiło {1}",
-      "_many": "{0} mężczyzn kupiło {1}",
-      "_other": "{0} mężczyzny kupiło {1}"
+      "$plural": "count",
+      "one": "{count} mężczyzna kupił {what}",
+      "few": "{count} mężczyzn kupiło {what}",
+      "many": "{count} mężczyzn kupiło {what}",
+      "other": "{count} mężczyzny kupiło {what}"
     },
     "apples": {
-      "_one": "1 jabłko",
-      "_few": "{0} jabłka",
-      "_many": "{0} jabłek",
-      "_other": "{0} jabłek"
+      "$plural": "count",
+      "one": "1 jabłko",
+      "few": "{count} jabłka",
+      "many": "{count} jabłek",
+      "other": "{count} jabłek"
     },
-    "sentence": "{0} kupił {1}"
+    "sentence": "{who} kupił {what}"
   }
 }

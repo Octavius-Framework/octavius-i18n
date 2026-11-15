@@ -16,18 +16,19 @@ Contents:
 
 ## A plural key
 
-An object whose keys are all plural forms, each holding a string, is a plural key:
+An object with a `$plural` key is a plural key. `$plural` names the count, and the other keys hold the forms:
 
 ```json
 "cohort": {
-  "_one":   "{0} kohorta",
-  "_few":   "{0} kohorty",
-  "_many":  "{0} kohort",
-  "_other": "{0} kohorty"
+  "$plural": "count",
+  "one":   "{count} kohorta",
+  "few":   "{count} kohorty",
+  "many":  "{count} kohort",
+  "other": "{count} kohorty"
 }
 ```
 
-It becomes two functions, `cohort(count: Int)` and `cohort(count: Double)`, and the count fills `{0}`:
+It becomes one function, `cohort(count: Number)`, and the count fills `{count}`:
 
 ```kotlin
 OctaviusI18n.currentLanguage = "pl"
@@ -40,29 +41,34 @@ Tr.Legion.Units.cohort(1.5)    // "1.5 kohorty"
 
 The count is inserted as Kotlin prints it: `1.5`, with a point, in every language.
 
-| Key      | Form                                               |
-|:---------|:---------------------------------------------------|
-| `_zero`  | `zero`, and a count of exactly 0 in every language |
-| `_one`   | `one`                                              |
-| `_two`   | `two`                                              |
-| `_few`   | `few`                                              |
-| `_many`  | `many`                                             |
-| `_other` | `other`, and every form the key does not have      |
+`Int`, `Long`, `Short` and `Byte` are counted as whole numbers, `Double` and `Float` as fractions, so
+`cohort(1.0)` is `1.0 kohorty`. Kotlin/JS cannot tell `1.0` from `1`: there a `Double` with no fractional part is a
+whole number, and it is printed as `1`.
 
-An object that mixes these with any other key is an ordinary object.
+| Key                                 | Takes                                                  |
+|:------------------------------------|:-------------------------------------------------------|
+| `=0`, `=1`, `=2.5`, …               | a count equal to that value, in every language         |
+| `zero`, `one`, `two`, `few`, `many` | the form of that name                                  |
+| `other`                             | the form `other`, and every form the key does not have |
 
-Each language lists the forms it needs, and the build does not compare them. It checks only that every language
-has the key as a plural, using the same placeholders besides the count.
+Each language lists the forms it needs, and the build does not compare them. A language whose words do not change
+with the number can hold the key as a plain string, such as `"{count} コホート"`. The build checks only the
+arguments besides the count — see [One key, every language](translation-files.md#one-key-every-language).
+
+A plural can also sit in a branch of another choice, or hold one — see [Choices](choices.md).
 
 ## How a form is chosen
 
-1. **A count of exactly 0 takes `_zero` when the key has one**, in every language and whatever its rule says.
-   `"_zero": "no cohorts"` in `en.json` makes `cohort(0)` read `no cohorts`; without it, `0 cohorts`.
+1. **An exact value is taken first**, in every language and whatever its rule says. `"=0": "no cohorts"` in
+   `en.json` makes `cohort(0)` read `no cohorts`; without it, `0 cohorts`. A count matches whatever its type:
+   `=0` takes `0` and `0.0` alike.
 2. **Otherwise the language's rule names a form.**
-3. **A form the key does not have falls back to `_other`.**
-4. **A key without `_other` falls back to its path**, such as `Legion.Units.cohort`.
+3. **A form the key does not have falls back to `other`.**
 
-A key needs only the forms its language tells apart, plus `_other`.
+A key needs only the forms its language tells apart, plus `other`. A plural without `other` stops the build.
+
+**`=0` is not the form `zero`.** Some languages' rules give `zero` to counts other than 0, so a text meant for
+nothing at all, such as `no cohorts`, belongs under `=0`.
 
 ## The built-in rules
 
@@ -73,10 +79,10 @@ Two languages have a rule built in:
 | `en`     | 1 → `one`; anything else → `other`                                        | `other`              |
 | `pl`     | 1 → `one`; ending in 2–4 but not in 12–14 → `few`; anything else → `many` | `other`              |
 
-Polish therefore never takes `_other` for an `Int`. It is there for fractions, and for any form a key leaves out.
+Polish therefore never takes `other` for an `Int`. It is there for fractions, and for any form a key leaves out.
 
 **Every other language is counted by the English rule until it has one of its own.** For a language with one
-form that is enough: give the key `_other` alone, and every count takes it. For a language with more forms than
+form that is enough: give the key `other` alone, and every count takes it. For a language with more forms than
 English, it is not.
 
 ## A rule of your own
@@ -86,10 +92,11 @@ wrong:
 
 ```json
 "cohort": {
-  "_one":   "{0} когорта",
-  "_few":   "{0} когорти",
-  "_many":  "{0} когорт",
-  "_other": "{0} когорти"
+  "$plural": "count",
+  "one":   "{count} когорта",
+  "few":   "{count} когорти",
+  "many":  "{count} когорт",
+  "other": "{count} когорти"
 }
 ```
 
@@ -112,7 +119,9 @@ Tr.Legion.Units.cohort(3)     // "3 когорти"
 Tr.Legion.Units.cohort(5)     // "5 когорт" — "5 когорти" without the rule
 ```
 
-A rule returns the form's name without the underscore. A name that is not one of the six takes `_other`.
+A rule returns the name of a form. A name that is not one of the six takes `other`. A `Long` too large for an
+`Int` reaches `selectForm(Int)` as 1 000 000 000 plus its last nine digits, so a rule that looks at the last
+digits counts it right.
 
 The map is not synchronized: register rules at startup, before anything is translated. Assigning `"pl"` or `"en"`
 replaces the built-in rule, and replacing `en` changes it for every language that has no rule of its own.
@@ -122,29 +131,33 @@ Which forms a language has, and which numbers fall into each, is in the
 
 ## Arguments beside the count
 
-Placeholders above `{0}` in any of the forms become parameters after the count:
+Any other placeholder in the forms becomes a parameter too:
 
 ```json
 "built": {
-  "_one":   "{0} legionista zbudował {1}",
-  "_few":   "{0} legionistów zbudowało {1}",
-  "_many":  "{0} legionistów zbudowało {1}",
-  "_other": "{0} legionisty zbudowało {1}"
+  "$plural": "count",
+  "one":   "{count} legionista zbudował {what}",
+  "few":   "{count} legionistów zbudowało {what}",
+  "many":  "{count} legionistów zbudowało {what}",
+  "other": "{count} legionisty zbudowało {what}"
 }
 ```
 
-gives `built(count: Int, arg1: Any)`, and the same with a `Double` count.
+gives `built(count: Number, what: Any)`. The count comes first because it chooses — see
+[Placeholders](translation-files.md#placeholders).
 
 ## Two counts in one sentence
 
-A sentence with two counts is two keys. The second count is rendered by its own key and passed in as an argument:
+A sentence with two counts can be two keys. The second count is rendered by its own key and passed in as an
+argument:
 
 ```json
 "towers": {
-  "_one":   "{0} wieżę",
-  "_few":   "{0} wieże",
-  "_many":  "{0} wież",
-  "_other": "{0} wieży"
+  "$plural": "count",
+  "one":   "{count} wieżę",
+  "few":   "{count} wieże",
+  "many":  "{count} wież",
+  "other": "{count} wieży"
 }
 ```
 
@@ -157,3 +170,6 @@ The sentence belongs to the key whose count the verb agrees with. *Zbudował* an
 agreeing with one legionary and with five, so the legionaries hold the sentence and the towers are passed in.
 Turned the other way round, the verb would follow the towers, and one legionary would get the verb of five:
 `1 legionista zbudowało 5 wież`.
+
+Both counts can also go into one key, with a `$plural` in each branch of another — see
+[Choices](choices.md#a-choice-inside-a-choice).

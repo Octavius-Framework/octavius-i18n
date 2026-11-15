@@ -32,7 +32,8 @@ OctaviusI18n.currentLanguage = "de"   // there is no de.json
 Tr.Legion.Orders.march()             // "March!", from en.json
 ```
 
-Each generator has its own `fallbackLanguage`, so two objects can fall back to different languages.
+Each generator has its own `fallbackLanguage`, so two objects can fall back to different languages. The text that
+stands in is counted by its own language's plural rule, not by the current language's.
 
 The fallback stands in for a whole language, never for a single key: a language that has a file has every key,
 or the build would have stopped. See [Translation Files](translation-files.md#one-key-every-language).

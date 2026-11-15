@@ -60,8 +60,9 @@ A file that does not parse as JSON, or whose top level is not an object, stops t
 
 ## From JSON to Kotlin
 
-An object becomes a Kotlin `object`, a string becomes a function returning `String`, and an object made only of
-plural forms becomes a plural function — see [Plurals](plurals.md).
+A string becomes a function returning `String`. An object with a `$plural` or `$select` key is one translation
+too, which chooses its text — see [Plurals](plurals.md) and [Choices](choices.md). Every other object is a group
+of keys and becomes a Kotlin `object`; an empty one generates nothing.
 
 ```json
 {
@@ -93,34 +94,43 @@ language after a switch.
 
 ## Placeholders
 
-`{0}`, `{1}`, … in a string make its function take one `Any` parameter per index, up to the highest one used.
-Each argument is inserted with `toString()`.
+A name in braces is a placeholder, and its function takes an `Any` parameter of that name, in backticks if it is
+a Kotlin keyword. Each argument is inserted with `toString()`.
 
 ```json
-"greeting": "Ave, {0}! Witaj w legionie {1}."
+"greeting": "Ave, {name}! Witaj w legionie {legion}."
 ```
 
 ```kotlin
-Tr.Legion.greeting("Marcus", "IX")   // "Ave, Marcus! Witaj w legionie IX."
+Tr.Legion.greeting(name = "Marcus", legion = "IX")   // "Ave, Marcus! Witaj w legionie IX."
+Tr.Legion.greeting("IX", "Marcus")                   // the same
 ```
 
-- A gap still counts: `"{0} i {2}"` takes three arguments, and the second one is never shown.
-- Only a number in braces is a placeholder. `{name}` is text and stays as written; a numbered one cannot be
-  escaped, so a translation cannot show a literal `{0}`.
-- An argument is inserted as it is. An argument that itself contains `{1}` is not expanded.
+- **The parameters do not follow the text.** They come in alphabetical order, so `greeting` is
+  `greeting(legion: Any, name: Any)` in every language, whatever order a translation puts them in. Arguments a
+  [choice](choices.md) chooses by come before the rest.
+- A name starts with a letter, followed by letters, digits and `_`. Anything else in braces is text, such as
+  `{ name }` or `{_x}`, except a number: `{0}` stops the build, which asks for a name instead.
+- A placeholder cannot be escaped, so a translation cannot show a literal `{name}`.
+- An argument is inserted as it is. An argument that itself contains `{legion}` is not expanded.
 
 ## One key, every language
 
-A key is one function for all languages, so **every language must have every key, in the same shape**: a string
-in all of them or a plural in all of them, using the same placeholders. The order of the placeholders is free,
-and so, in a plural, is the count; the forms of a plural are each language's own.
+A key is one function for all languages, so **every language must have every key**, and the function takes every
+argument that any language uses. Beyond that, each language writes the key its own way: a plain string in one, a
+plural or a [choice](choices.md) in another, with the placeholders in any order.
+
+**An argument that is only inserted into the text has to be in every language.** One that a language leaves out is
+almost always a placeholder forgotten in translation. An argument that chooses, the count of a plural or the
+argument of a `$select`, may be missing from a language that does not need the choice, and a language may insert
+a count without choosing by it, as in `"{count} コホート"`.
 
 Anything else stops the build, with every problem listed at once:
 
 ```
 > Problems in the translation files:
   - en has no `Legion.Orders.retreat`
-  - `Legion.greeting` is not the same in every language: a string using {0}, {1} in en; a string using {0} in pl
+  - `Legion.greeting` uses {legion} in en but not in pl
 ```
 
 The check covers everything a generator reads. A generator in the root project reads every module, so every
