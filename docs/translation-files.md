@@ -49,7 +49,9 @@ plugin in `:camp`.
 ## The language of a file
 
 The file name without `.json` is the language code: `pl.json` is `"pl"`, `pt-BR.json` is `"pt-BR"`. It is matched
-against `OctaviusI18n.currentLanguage` exactly, case included.
+against `OctaviusI18n.currentLanguage` with case and `_` or `-` set aside, and a current language with more parts,
+such as `pl-PL`, finds it too — see [Choosing the Language](choosing-the-language.md#a-language-with-no-file). Two
+files whose codes differ only in case or separator, `pl.json` and `PL.json`, stop the build.
 
 All files of one language are merged into one tree, object into object, so `Legion.Orders` can come from one
 module and `Legion.Units` from another. Each key has to be in exactly one of them: the same key in two files of
@@ -62,7 +64,8 @@ A file that does not parse as JSON, or whose top level is not an object, stops t
 
 A string becomes a function returning `String`. An object with a `$plural`, `$ordinal` or `$select` key is one
 translation too, which chooses its text — see [Plurals](plurals.md) and [Choices](choices.md). Every other object is a group
-of keys and becomes a Kotlin `object`; an empty one generates nothing.
+of keys and becomes a property of the group it is in, through which its own keys are called; an empty one
+generates nothing.
 
 ```json
 {
@@ -86,7 +89,7 @@ Tr.Legion.SiegeEngines.heavyBallista()   // "Ciężka balista"
 Tr.Legion.Gates.`in`()                   // "Wejście"
 ```
 
-Objects are named in PascalCase and functions in camelCase, with `_` and `-` separating words; every other letter
+Groups are named in PascalCase and functions in camelCase, with `_` and `-` separating words; every other letter
 is kept as written. A Kotlin keyword is escaped with backticks.
 
 Accessors are functions, not properties. Each call reads the current language, so the same line returns another

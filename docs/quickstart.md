@@ -108,8 +108,8 @@ Each generator produces one object. All four options are optional:
 }
 ```
 
-The file name is the language. Nested objects become nested Kotlin objects, and `cohort` is a plural key — see
-[Plurals](plurals.md).
+The file name is the language. Nested objects become groups of keys, called as `Tr.Legion.Orders`, and `cohort`
+is a plural key — see [Plurals](plurals.md).
 
 ## 4. Build and Call
 

@@ -29,7 +29,23 @@
   another number the same way: `Tr.Legion.pay(Tr.numberFormat.format(12500.5))`. It is a property, so no key can
   take its name.
 
+- `Tr.inLanguage(code)`, the same keys in another language than the current one, which it leaves alone:
+  `Tr.inLanguage("pl").Legion.Orders.march()`. The language is found as the current one is and kept, so a server
+  can answer each user in their own. Every code that finds one language gives the same object, made the first
+  time that language is asked for, so it can be called for every text. See
+  [Choosing the Language](docs/choosing-the-language.md#another-language).
+
 #### Changed
+
+- **[BREAKING]** A group of keys is a property of the generated `{ObjectName}Accessors` class, holding an instance
+  of its inner class `{Group}Group`, where it was a nested `object`; `Tr` is an instance of that class too. Kotlin
+  calls such as `Tr.Legion.Orders.march()` compile as before, and Java goes through getters:
+  `Tr.INSTANCE.getLegion().getOrders().march()`.
+
+- **[BREAKING]** The current language finds its file with case and `_` or `-` set aside, and with its last part
+  cut off when the whole code has no file: `PL`, `pl_PL` and `pl-PL` all find `pl.json`, where each needed a file
+  of exactly that name and took the fallback language without one. Two files whose codes differ only that way,
+  such as `pl.json` and `PL.json`, stop the build.
 
 - **[BREAKING]** A plural is written with `$plural`, and an object of `_one`/`_other` forms is an ordinary group
   of keys. `{"_one": "{0} kohorta", "_other": "{0} kohorty"}` becomes

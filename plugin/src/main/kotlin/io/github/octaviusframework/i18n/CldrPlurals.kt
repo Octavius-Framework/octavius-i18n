@@ -36,7 +36,7 @@ internal class CldrPlurals(kind: PluralKind, file: String, type: String) {
      * no rule for any of them.
      */
     fun ruleFor(language: String): PluralRule? {
-        var code = language.lowercase().replace('_', '-')
+        var code = languageCode(language)
         while (true) {
             rules[code]?.let { return it }
             val cut = code.lastIndexOf('-')

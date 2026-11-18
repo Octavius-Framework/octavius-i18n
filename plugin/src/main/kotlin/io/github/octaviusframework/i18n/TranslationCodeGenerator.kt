@@ -23,7 +23,7 @@ import java.nio.charset.StandardCharsets
  *
  * Generated files:
  * - `{ObjectName}Translations{Lang}.kt` - one language's translations compiled to functions
- * - `{ObjectName}.kt` - the accessor object and the interface every language implements
+ * - `{ObjectName}.kt` - the accessor object, the accessor class for any language, and the interface every language implements
  *
  * The task fails, listing every problem at once, when the files cannot be generated from: a file
  * that is not a JSON object, or the problems [readTranslations] describes.

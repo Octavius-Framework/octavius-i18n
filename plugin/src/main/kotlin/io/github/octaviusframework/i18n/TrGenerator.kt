@@ -1,8 +1,8 @@
 package io.github.octaviusframework.i18n
 
 /**
- * Generates `{objectName}.kt`: the accessor object mirroring the keys, and the interface each language's
- * translations implement.
+ * Generates `{objectName}.kt`: the accessor object for the current language, the accessor class it is an instance
+ * of, which mirrors the keys, and the interface each language's translations implement.
  */
 internal class TrGenerator(private val packageName: String, private val objectName: String) {
     private val builder = StringBuilder()
@@ -18,70 +18,66 @@ internal class TrGenerator(private val packageName: String, private val objectNa
         }
     }
 
-    /** A level of the accessor object: a nested object per group of keys, a function per key. */
+    /** A level of the accessor class: an inner class per group of keys, a function per key. */
     private class Group {
         val children = sortedMapOf<String, Any>()
     }
 
     /**
-     * Renders the full `{objectName}.kt` source file for [translations], falling back to [defaultLang] when the
-     * current language has no translations.
+     * Renders the full `{objectName}.kt` source file for [translations], falling back to the language
+     * [defaultLang] finds, or to the first one when it finds none, for a language that has no translations. The
+     * accessors' documentation shows that language's templates.
      */
     fun generate(translations: Translations, defaultLang: String): String {
         builder.clear()
+        val fallback = findLanguage(defaultLang, translations.languages) ?: translations.languages.first()
         val interfaceName = "${objectName}Translations"
+        val accessorsName = "${objectName}Accessors"
 
         // The IDE's style inspections, on what the generator writes on purpose: `public` for explicit API mode, full
-        // names no type of the target package can shadow, `___` names no key can take, and interface functions named
-        // after key paths. The `unused` inspection is left on: what it greys out is a key nothing calls
+        // names no type of the target package can shadow, `___` names no key can take, and functions and
+        // properties named after keys. The `unused` inspection is left on: what it greys out is a key nothing calls
         appendLine(
             "@file:Suppress(\"RedundantVisibilityModifier\", \"RemoveRedundantQualifierName\", " +
-                "\"ObjectPrivatePropertyName\", \"FunctionName\")"
+                "\"ObjectPrivatePropertyName\", \"PrivatePropertyName\", \"PropertyName\", \"FunctionName\")"
         )
         appendLine()
         appendLine("package $packageName")
         appendLine()
         appendLine("/**")
-        appendLine(" * Type-safe accessors for translations.")
+        appendLine(" * Type-safe accessors for translations, in the current language.")
         appendLine(" *")
         appendLine(" * This file is auto-generated. Do not edit manually.")
         appendLine(" *")
         appendLine(" * Usage:")
         appendLine(" * ```kotlin")
-        appendLine(" * $objectName.Action.save()           // Get translation")
+        appendLine(" * $objectName.Action.save()                     // in the current language")
+        appendLine(" * $objectName.inLanguage(\"pl\").Action.save()     // in Polish, whatever the current language is")
         appendLine(" * io.github.octaviusframework.i18n.core.OctaviusI18n.currentLanguage = \"en\"  // Switch language globally")
         appendLine(" * ```")
         appendLine(" */")
-        appendLine("public object $objectName {")
+        appendLine("public object $objectName : $accessorsName(::___current) {")
         indentLevel++
-
-        // No key or placeholder can be named `___…`: accessor names drop leading `_`, and an argument starts with a letter
         appendLine()
-        appendLine("private val ___registry: kotlin.collections.Map<kotlin.String, $interfaceName> = mapOf(")
-        indentLevel++
-        for (lang in translations.languages) {
-            appendLine("\"${escapeString(lang)}\" to $interfaceName${toPascalCase(lang)},")
-        }
-        indentLevel--
-        appendLine(")")
-        appendLine()
-
-        appendLine("private val ___data: $interfaceName")
-        indentLevel++
-        appendLine("get() {")
-        indentLevel++
-        appendLine("val lang = io.github.octaviusframework.i18n.core.OctaviusI18n.currentLanguage")
-        appendLine("return ___registry[lang] ?: ___registry[\"${escapeString(defaultLang)}\"] ?: ___registry.values.first()")
+        appendLine("/**")
+        appendLine(" * The translations in [language], found as the current language is, without changing the current language:")
+        appendLine(" * for a text in another language than the current one, as a server answering each user in theirs needs.")
+        appendLine(" * Every code that finds one language gives the same object.")
+        appendLine(" */")
+        appendLine("public fun inLanguage(language: kotlin.String): $accessorsName = ___accessors.getValue(___find(language)).value")
         indentLevel--
         appendLine("}")
-        indentLevel--
         appendLine()
 
-        // A property, so no key, which becomes a function or an object, can take its name
-        appendLine("/** The number format of the current language, the one counts are written in, for writing another number. */")
+        appendLine("/** The accessors of [$objectName] in one language: a property per group of keys, a function per key. */")
+        appendLine("public open class $accessorsName internal constructor(private val ___data: () -> $interfaceName) {")
+        indentLevel++
+        appendLine()
+        // A property, so no key, which becomes a function or a group, can take its name
+        appendLine("/** The number format of the language, the one counts are written in, for writing another number. */")
         appendLine("public val numberFormat: io.github.octaviusframework.i18n.core.NumberFormat")
         indentLevel++
-        appendLine("get() = ___data.numberFormat")
+        appendLine("get() = ___data().numberFormat")
         indentLevel--
         appendLine()
 
@@ -94,10 +90,60 @@ internal class TrGenerator(private val packageName: String, private val objectNa
             }
             group.children[segments.last()] = key
         }
-        generateGroup(root, translations.languages.firstOrNull { it == defaultLang } ?: translations.languages.first())
+        generateGroup(root, fallback)
 
         indentLevel--
         appendLine("}")
+        appendLine()
+
+        // No key or placeholder can be named `___…`: accessor names drop leading `_`, and an argument starts with a letter
+        appendLine("/** Each language's translations, by its code in lower case, with `-` between its parts. */")
+        appendLine("private val ___registry: kotlin.collections.Map<kotlin.String, $interfaceName> = mapOf(")
+        indentLevel++
+        for (lang in translations.languages) {
+            appendLine("\"${escapeString(languageCode(lang))}\" to $interfaceName${toPascalCase(lang)},")
+        }
+        indentLevel--
+        appendLine(")")
+        appendLine()
+
+        // Made once per language, on the first call that asks for it; two threads racing may each make one, and one stays
+        appendLine("/** Each language's accessors, by its translations, made the first time [$objectName.inLanguage] gives them. */")
+        appendLine("private val ___accessors: kotlin.collections.Map<$interfaceName, kotlin.Lazy<$accessorsName>> =")
+        indentLevel++
+        appendLine("___registry.values.associateWith { translations ->")
+        indentLevel++
+        appendLine("kotlin.lazy(kotlin.LazyThreadSafetyMode.PUBLICATION) { $accessorsName { translations } }")
+        indentLevel--
+        appendLine("}")
+        indentLevel--
+        appendLine()
+
+        appendLine("/** The translations of [code], or of the code with its last part cut off; case and `_` or `-` do not matter. */")
+        appendLine("private fun ___lookup(code: kotlin.String): $interfaceName? {")
+        indentLevel++
+        appendLine("___registry[code]?.let { return it }")
+        appendLine("var shorter = code.lowercase().replace('_', '-')")
+        appendLine("while (true) {")
+        indentLevel++
+        appendLine("___registry[shorter]?.let { return it }")
+        appendLine("val cut = shorter.lastIndexOf('-')")
+        appendLine("if (cut < 0) return null")
+        appendLine("shorter = shorter.substring(0, cut)")
+        indentLevel--
+        appendLine("}")
+        indentLevel--
+        appendLine("}")
+        appendLine()
+
+        appendLine("/** The translations of [language], or of the fallback language. */")
+        appendLine("private fun ___find(language: kotlin.String): $interfaceName =")
+        indentLevel++
+        appendLine("___lookup(language) ?: $interfaceName${toPascalCase(fallback)}")
+        indentLevel--
+        appendLine()
+
+        appendLine("private fun ___current(): $interfaceName = ___find(io.github.octaviusframework.i18n.core.OctaviusI18n.currentLanguage)")
         appendLine()
 
         appendLine("/** The translations of [$objectName] in one language. */")
@@ -113,12 +159,18 @@ internal class TrGenerator(private val packageName: String, private val objectNa
         return builder.toString()
     }
 
-    /** Emits one accessor per key in [group] and one nested `object` per group in it, sorted by key. */
+    /** Emits one accessor per key in [group] and one property with an inner class per group in it, sorted by key. */
     private fun generateGroup(group: Group, docLang: String) {
         for ((name, child) in group.children) {
             when (child) {
                 is Group -> {
-                    appendLine("public object ${escapeName(toPascalCase(name))} {")
+                    // The property has the group's name; a class of the same name would conflict with it
+                    val propertyName = escapeName(toPascalCase(name))
+                    val className = "${toPascalCase(name)}Group"
+                    appendLine("public val $propertyName: $className = $className()")
+                    appendLine()
+                    appendLine("/** The keys under `$name`. */")
+                    appendLine("public inner class $className internal constructor() {")
                     indentLevel++
                     generateGroup(child, docLang)
                     indentLevel--
@@ -132,7 +184,7 @@ internal class TrGenerator(private val packageName: String, private val objectNa
                     appendLine("/** `${child.path}`$template */")
                     appendLine(
                         "public fun ${escapeName(toCamelCase(name))}(${child.signature.declaration()}): kotlin.String = " +
-                            "___data.${memberName(child.path)}(${child.signature.call()})"
+                            "___data().${memberName(child.path)}(${child.signature.call()})"
                     )
                     appendLine()
                 }
@@ -142,7 +194,7 @@ internal class TrGenerator(private val packageName: String, private val objectNa
 }
 
 /**
- * The name of [path]'s function in the translations interface: its accessor's name prefixed with the objects
+ * The name of [path]'s function in the translations interface: its accessor's name prefixed with the groups
  * it is nested in, such as `Legion_Orders_march`.
  */
 internal fun memberName(path: String): String {

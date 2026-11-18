@@ -16,15 +16,33 @@ Tr.Legion.Orders.march()   // "Marsz!"
 ```
 
 **There is one for the whole program.** It belongs to a global object, not to a thread, a request or a generated
-object: every `Tr` in every module reads the same one, and switching it switches them all. An application that
-has to render two languages at the same time — a server answering users in each — cannot keep them apart with it.
+object: every `Tr` in every module reads the same one, and switching it switches them all. A text in another
+language is asked for by name — see [Another language](#another-language).
 
 It is not synchronized. Switch the language from one thread, the UI thread for example.
 
+## Another language
+
+`Tr.inLanguage(code)` gives the same keys in the language of `code`, and leaves the current language alone:
+
+```kotlin
+OctaviusI18n.currentLanguage = "en"
+val polish = Tr.inLanguage("pl")
+polish.Legion.Orders.march()   // "Marsz!"
+Tr.Legion.Orders.march()       // "March!"
+```
+
+It finds the language as the current one is found, and keeps it: `polish` translates into Polish whatever the
+current language becomes, so a server can answer each user in their own. Every code that finds one language
+gives the same object, made the first time that language is asked for, so `Tr.inLanguage(user.language)` can be
+called for every text.
+
 ## A language with no file
 
-When the current language has no file, the generated object uses its generator's `fallbackLanguage`, and when
-that has no file either, one of the languages that do:
+A code finds its file in three steps. The code itself, with case and `_` or `-` set aside, so `PL` and `pl_PL`
+find `pl-PL.json` as `pl-PL` does. Then the code with its last part cut off, as many times as it has parts, so
+`pl-PL` finds `pl.json`. Then, when none of these has a file, the generator's `fallbackLanguage`, and when that has
+no file either, one of the languages that do:
 
 ```kotlin
 OctaviusI18n.currentLanguage = "de"   // there is no de.json

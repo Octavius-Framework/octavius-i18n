@@ -14,6 +14,6 @@ the language and the plural form are picked when that code runs. The pages follo
 | [Translation Files](translation-files.md)         | Which files are read, how JSON becomes functions, placeholders, and the files the build refuses    |
 | [Plurals](plurals.md)                             | Plural keys, how a form is chosen, the CLDR rule each language takes, two counts in one sentence   |
 | [Choices](choices.md)                             | A text chosen by a string or a count, choices inside choices, and a language that needs none       |
-| [Choosing the Language](choosing-the-language.md) | The current language, one for the whole program, and the fallback for a language with no file      |
+| [Choosing the Language](choosing-the-language.md) | The current language, one for the whole program, another asked for by name, and the fallback       |
 
 If nothing is generated yet, the [Quickstart](quickstart.md) is where to start.

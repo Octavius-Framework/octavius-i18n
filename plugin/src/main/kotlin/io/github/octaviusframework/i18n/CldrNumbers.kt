@@ -41,7 +41,7 @@ internal object CldrNumbers {
      * has it, as `pt-BR` takes `pt`; CLDR's root format when it has none of them.
      */
     fun formatFor(language: String): CldrNumberFormat {
-        var code = language.lowercase().replace('_', '-')
+        var code = languageCode(language)
         while (true) {
             formats[code]?.let { return it }
             val cut = code.lastIndexOf('-')

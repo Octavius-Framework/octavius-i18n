@@ -2,6 +2,7 @@ package org.example.i18n
 
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertSame
 import io.github.octaviusframework.i18n.core.OctaviusI18n
 import org.example.feature.i18n.FeatureTr
 
@@ -180,5 +181,41 @@ class I18nTest {
         // A language with no file writes numbers as the one standing in for it
         OctaviusI18n.currentLanguage = "de"
         assertEquals("12,500.5", Tr.numberFormat.format(12500.5))
+    }
+
+    @Test
+    fun `test a language code finds its file as a plural rule is found`() {
+        for (code in listOf("pl", "PL", "pl-PL", "pl_PL", "PL-pl")) {
+            OctaviusI18n.currentLanguage = code
+            assertEquals("Cześć", Tr.hello(), code)
+        }
+        OctaviusI18n.currentLanguage = "plx"
+        assertEquals("Hello", Tr.hello())
+    }
+
+    @Test
+    fun `test translations in another language leave the current one alone`() {
+        OctaviusI18n.currentLanguage = "en"
+        val polish = Tr.inLanguage("pl")
+        assertEquals("Cześć", polish.hello())
+        assertEquals("3 użytkowników", polish.Users.count(3))
+        assertEquals("1,5", polish.numberFormat.format(1.5))
+        assertEquals("Zaloguj do funkcji", polish.Feature.login())
+        assertEquals("Hello", Tr.hello())
+        assertEquals("en", OctaviusI18n.currentLanguage)
+
+        // It keeps its language when the current one changes, and a language with no file takes the fallback
+        OctaviusI18n.currentLanguage = "pl"
+        assertEquals("Hello", Tr.inLanguage("en").hello())
+        assertEquals("Hello", Tr.inLanguage("de").hello())
+        OctaviusI18n.currentLanguage = "en"
+        assertEquals("Cześć", polish.hello())
+    }
+
+    @Test
+    fun `test every code that finds one language gives the same translations`() {
+        assertSame(Tr.inLanguage("pl"), Tr.inLanguage("pl"))
+        assertSame(Tr.inLanguage("pl"), Tr.inLanguage("pl-PL"))
+        assertSame(Tr.inLanguage("en"), Tr.inLanguage("de"))
     }
 }

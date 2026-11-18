@@ -83,6 +83,15 @@ class ReadTranslationsTest {
     }
 
     @Test
+    fun `codes that differ only in case or separator are reported`() {
+        val problems = problems(
+            file("main/pt_BR.json", """{ "march": "Marchem!" }"""),
+            file("camp/pt-br.json", """{ "march": "Marchem!" }"""),
+        )
+        assertEquals(listOf("pt_BR and pt-br are one language code written two ways; the files of a language are named alike"), problems)
+    }
+
+    @Test
     fun `a key defined in two files of one language names both files`() {
         val problems = problems(
             file("main/pl.json", """{ "Legion": { "march": "Marsz!" } }"""),

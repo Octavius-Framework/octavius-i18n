@@ -39,6 +39,27 @@ internal fun isKotlinKeyword(name: String): Boolean {
 }
 
 /**
+ * A language code in the one spelling the plugin compares codes by: lower case, with `-` between its parts, so
+ * `pt_BR` and `PT-br` are both `pt-br`.
+ */
+internal fun languageCode(code: String): String = code.lowercase().replace('_', '-')
+
+/**
+ * The one of [languages] that [code] finds, as the generated lookup finds a file: the code itself, then the code
+ * with its last part cut off, as many times as it has parts, so `en-US` finds `en`.
+ */
+internal fun findLanguage(code: String, languages: List<String>): String? {
+    val byCode = languages.associateBy { languageCode(it) }
+    var shorter = languageCode(code)
+    while (true) {
+        byCode[shorter]?.let { return it }
+        val cut = shorter.lastIndexOf('-')
+        if (cut < 0) return null
+        shorter = shorter.substring(0, cut)
+    }
+}
+
+/**
  * Escapes a string for use inside a Kotlin string literal.
  */
 internal fun escapeString(s: String): String {

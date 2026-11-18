@@ -28,6 +28,7 @@ internal class Translations(
 
 /**
  * Reads [files] into keys, listing every way they cannot be generated, one message per problem:
+ * - language codes that differ only in case or in `_` for `-`, such as `pl` and `PL`,
  * - a key defined in two files of one language,
  * - a key that is a translation in one file of a language and a group of keys in another,
  * - a key that some languages have and others lack, except in the [unreadable] languages, which have a file that
@@ -52,6 +53,12 @@ internal fun readTranslations(files: List<TranslationFile>, unreadable: Set<Stri
                 leaves[key] = leaf to file.path
             }
         }
+    }
+
+    // A language is found by its code with case and `_` or `-` ignored, so two such codes would be one language
+    byLang.keys.groupBy { languageCode(it) }.values.filter { it.size > 1 }.forEach { codes ->
+        problems += codes.joinToString(" and ") + " are one language code written two ways; the files of a language " +
+            "are named alike"
     }
 
     for (leaves in byLang.values) {
