@@ -19,7 +19,7 @@ Contents:
 
 Every file matching `src/**/i18n/*.json` in the generator's `sourceProject` and in all of its subprojects. That
 is `src/main/i18n/` and `src/commonMain/i18n/`, but test source sets too: `src/test/i18n/` goes into the same
-object as `src/main/i18n/`.
+object as `src/main/i18n/`. A generator that finds no file at all stops the build.
 
 Without `sourceProject`, the generator reads the project the plugin is applied to, with its subprojects. A plugin
 applied in the root project therefore reads the whole build.
@@ -60,7 +60,8 @@ module and `Legion.Units` from another. Each key has to be in exactly one of the
 one language stops the build, and so does a key that is a translation in one file and a group of keys in
 another.
 
-A file that does not parse as JSON, or whose top level is not an object, stops the build too.
+A file that is empty, does not parse as JSON, or whose top level is not an object, stops the build too. A file
+with no keys yet holds `{}`.
 
 ## From JSON to Kotlin
 

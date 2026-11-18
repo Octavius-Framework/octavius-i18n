@@ -28,6 +28,7 @@ internal class Translations(
 
 /**
  * Reads [files] into keys, listing every way they cannot be generated, one message per problem:
+ * - no file at all, and no [unreadable] one either, since there would be no language to generate,
  * - a file name that is not a language code, such as `en.v2`,
  * - language codes that differ only in case or in `_` for `-`, such as `pl` and `PL`,
  * - a key defined in two files of one language,
@@ -42,6 +43,10 @@ internal class Translations(
  */
 internal fun readTranslations(files: List<TranslationFile>, unreadable: Set<String> = emptySet()): Translations {
     val problems = mutableListOf<String>()
+    if (files.isEmpty() && unreadable.isEmpty()) {
+        problems += "no translation file was found; a generator reads every src/**/i18n/*.json of its sourceProject " +
+            "and of its subprojects"
+    }
 
     // language -> key path -> (translation, file it came from)
     val byLang = linkedMapOf<String, MutableMap<String, Pair<JsonElement, String>>>()

@@ -60,6 +60,15 @@ class ReadTranslationsTest {
     }
 
     @Test
+    fun `no file at all is reported, but not beside files that could not be read`() {
+        assertEquals(
+            listOf("no translation file was found; a generator reads every src/**/i18n/*.json of its sourceProject and of its subprojects"),
+            problems(),
+        )
+        assertEquals(emptyList(), readTranslations(emptyList(), unreadable = setOf("pl")).problems)
+    }
+
+    @Test
     fun `a language CLDR has no rule for is reported when its plurals have forms to choose from`() {
         val problems = problems(
             file("main/polish.json", """{ "cohort": { "${'$'}plural": "count", "one": "{count} kohorta", "other": "{count} kohorty" } }"""),

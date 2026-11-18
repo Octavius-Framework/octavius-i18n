@@ -106,6 +106,12 @@
   object got a name that did not compile. The code is the whole file name without `.json`, so `pl.json.json` is
   no longer taken for `pl`. See [Translation Files](docs/translation-files.md#the-language-of-a-file).
 
+- A generator that finds no translation file stops the build, saying where it looks. It generated nothing and only
+  logged a warning, so the code calling `Tr` failed to compile with an unresolved reference.
+
+- An empty translation file stops the build, as one that is not valid JSON does. It was skipped, so an empty
+  `de.json` left German out without a word.
+
 ### Runtime
 
 #### Added

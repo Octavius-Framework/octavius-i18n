@@ -26,7 +26,7 @@ import java.nio.charset.StandardCharsets
  * - `{ObjectName}.kt` - the accessor object, the accessor class for any language, and the interface every language implements
  *
  * The task fails, listing every problem at once, when the files cannot be generated from: a file
- * that is not a JSON object, or the problems [readTranslations] describes.
+ * that is empty, is not valid JSON or is not a JSON object, or the problems [readTranslations] describes.
  *
  * Example usage of generated code:
  * ```kotlin
@@ -82,20 +82,18 @@ abstract class GenerateI18nTask : DefaultTask() {
             if (file.isFile && file.name.endsWith(".json")) {
                 val lang = file.name.removeSuffix(".json")
                 val content = file.readText(Charsets.UTF_8)
-                if (content.isNotBlank()) {
-                    logger.info("Found translation for '$lang' in ${file.path}")
-                    try {
-                        val sourceElement = Json.parseToJsonElement(content)
-                        if (sourceElement is JsonObject) {
-                            translationFiles += TranslationFile(file.path, lang, sourceElement)
-                        } else {
-                            problems += "${file.path} is not a JSON object"
-                            unreadable += lang
-                        }
-                    } catch (e: SerializationException) {
-                        problems += invalidJson(file.path, content, e)
+                logger.info("Found translation for '$lang' in ${file.path}")
+                try {
+                    val sourceElement = Json.parseToJsonElement(content)
+                    if (sourceElement is JsonObject) {
+                        translationFiles += TranslationFile(file.path, lang, sourceElement)
+                    } else {
+                        problems += "${file.path} is not a JSON object"
                         unreadable += lang
                     }
+                } catch (e: SerializationException) {
+                    problems += invalidJson(file.path, content, e)
+                    unreadable += lang
                 }
             }
         }
@@ -110,11 +108,6 @@ abstract class GenerateI18nTask : DefaultTask() {
         val outputDirFile = outputDir.get().asFile
         outputDirFile.deleteRecursively()
         outputDirFile.mkdirs()
-
-        if (translations.languages.isEmpty()) {
-            logger.warn("No translation files found!")
-            return
-        }
 
         val packageDir = File(outputDirFile, actualTargetPackage.replace(".", "/"))
         packageDir.mkdirs()
@@ -138,10 +131,11 @@ private val JSON_ERROR = Regex("""^Unexpected JSON token at offset (\d+): (.*?)(
 
 /**
  * The problem kotlinx.serialization found in the file at [path], as `path:line:column` and the reason, which the
- * IDE links to the place. Its message counts a character offset, and the lines after the first repeat the input
- * and advise on `Json {}` settings.
+ * IDE links to the place, or that the file is empty. Its message counts a character offset, and the lines after
+ * the first repeat the input and advise on `Json {}` settings.
  */
 internal fun invalidJson(path: String, content: String, e: SerializationException): String {
+    if (content.isBlank()) return "$path is empty; a translation file is a JSON object, `{}` while it has no keys"
     val first = e.message?.lineSequence()?.first().orEmpty()
     val match = JSON_ERROR.find(first) ?: return "$path is not valid JSON: $first"
     val offset = match.groupValues[1].toInt().coerceAtMost(content.length)

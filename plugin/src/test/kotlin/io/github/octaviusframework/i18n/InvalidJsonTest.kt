@@ -22,6 +22,13 @@ class InvalidJsonTest {
     }
 
     @Test
+    fun `an empty file is reported as empty`() {
+        val empty = "main/pl.json is empty; a translation file is a JSON object, `{}` while it has no keys"
+        assertEquals(empty, problem(""))
+        assertEquals(empty, problem("  \n "))
+    }
+
+    @Test
     fun `advice on Json settings is left out`() {
         assertEquals(
             "main/pl.json:1:12 is not valid JSON: Trailing comma before the end of JSON object",
