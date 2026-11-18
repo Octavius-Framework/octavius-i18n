@@ -80,7 +80,7 @@ abstract class GenerateI18nTask : DefaultTask() {
 
         sourceFiles.get().files.forEach { file ->
             if (file.isFile && file.name.endsWith(".json")) {
-                val lang = file.name.substringBefore(".json")
+                val lang = file.name.removeSuffix(".json")
                 val content = file.readText(Charsets.UTF_8)
                 if (content.isNotBlank()) {
                     logger.info("Found translation for '$lang' in ${file.path}")

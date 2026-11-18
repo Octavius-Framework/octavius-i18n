@@ -51,7 +51,9 @@ plugin in `:camp`.
 The file name without `.json` is the language code: `pl.json` is `"pl"`, `pt-BR.json` is `"pt-BR"`. It is matched
 against `OctaviusI18n.currentLanguage` with case and `_` or `-` set aside, and a current language with more parts,
 such as `pl-PL`, finds it too — see [Choosing the Language](choosing-the-language.md#a-language-with-no-file). Two
-files whose codes differ only in case or separator, `pl.json` and `PL.json`, stop the build.
+files whose codes differ only in case or separator, `pl.json` and `PL.json`, stop the build. A code is letters,
+then parts of letters and digits after `-` or `_`, as `es-419` is; a file named otherwise, such as `en.v2.json`,
+stops the build too.
 
 All files of one language are merged into one tree, object into object, so `Legion.Orders` can come from one
 module and `Legion.Units` from another. Each key has to be in exactly one of them: the same key in two files of
@@ -91,6 +93,12 @@ Tr.Legion.Gates.`in`()                   // "Wejście"
 
 Groups are named in PascalCase and functions in camelCase, with `_` and `-` separating words; every other letter
 is kept as written. A Kotlin keyword is escaped with backticks.
+
+With `_` and `-` set aside, a name starts with a letter and holds only letters and digits, of any alphabet:
+`centurion_2` is `centurion2()`, and `404` or `night watch` stops the build. So do two names in one group that
+become one Kotlin name, such as `siege_engines` and `SiegeEngines`, a key named `toString` or `hashCode`, which
+every Kotlin object has, and a key named `inLanguage` at the top level, where it is
+[another language](choosing-the-language.md#another-language).
 
 Accessors are functions, not properties. Each call reads the current language, so the same line returns another
 language after a switch.

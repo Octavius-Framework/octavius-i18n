@@ -28,9 +28,11 @@ internal class Translations(
 
 /**
  * Reads [files] into keys, listing every way they cannot be generated, one message per problem:
+ * - a file name that is not a language code, such as `en.v2`,
  * - language codes that differ only in case or in `_` for `-`, such as `pl` and `PL`,
  * - a key defined in two files of one language,
  * - a key that is a translation in one file of a language and a group of keys in another,
+ * - a key or group whose name the accessors cannot have, as [checkNames] describes,
  * - a key that some languages have and others lack, except in the [unreadable] languages, which have a file that
  *   could not be read and so lack whatever it held,
  * - a translation that is not a message, such as a `$plural` without `other`,
@@ -61,6 +63,14 @@ internal fun readTranslations(files: List<TranslationFile>, unreadable: Set<Stri
             "are named alike"
     }
 
+    // The code names the language's generated object, as `pt-BR` names `TrTranslationsPtBR`
+    for (file in files) {
+        if (!LANGUAGE_CODE.matches(file.lang)) {
+            problems += "`${file.lang}`, the name of ${file.path}, is not a language code; a file is named after a " +
+                "language code, such as pl or pt-BR"
+        }
+    }
+
     for (leaves in byLang.values) {
         for ((key, leaf) in leaves) {
             var dot = key.indexOf('.')
@@ -73,6 +83,7 @@ internal fun readTranslations(files: List<TranslationFile>, unreadable: Set<Stri
     }
 
     val allKeys = byLang.values.flatMapTo(sortedSetOf()) { it.keys }
+    checkNames(allKeys, problems)
     for ((lang, leaves) in byLang) {
         if (lang in unreadable) continue
         for (key in allKeys) {
@@ -96,6 +107,8 @@ internal fun readTranslations(files: List<TranslationFile>, unreadable: Set<Stri
 
     val rules = linkedMapOf<String, Map<PluralKind, PluralRule>>()
     for (lang in byLang.keys) {
+        // Reported above as not a language code, so not also as a language CLDR has no rule for
+        if (!LANGUAGE_CODE.matches(lang)) continue
         if (PluralKind.CARDINAL.cldr.ruleFor(lang) != null) {
             rules[lang] = PluralKind.entries.mapNotNull { kind -> kind.cldr.ruleFor(lang)?.let { kind to it } }.toMap()
             continue
@@ -108,6 +121,62 @@ internal fun readTranslations(files: List<TranslationFile>, unreadable: Set<Stri
     }
 
     return Translations(byLang.keys.toList(), keys, rules, problems.distinct())
+}
+
+/** A language code as a file is named: letters, then parts of letters and digits after `-` or `_`, as in `es-419`. */
+private val LANGUAGE_CODE = Regex("""[A-Za-z]+(?:[-_][A-Za-z0-9]+)*""")
+
+/** An accessor's name, its `_` and `-` set aside: a letter, then letters and digits. */
+private val KOTLIN_NAME = Regex("""\p{L}[\p{L}\p{Nd}]*""")
+
+/** The functions without parameters every Kotlin object has, which a key's function would hide. */
+private val ANY_FUNCTIONS = setOf("toString", "hashCode")
+
+/**
+ * Adds to [problems] every name in the key [paths] the accessors cannot have: one that is not a Kotlin name, two in
+ * one group that are one Kotlin name, such as `fooBar` and `foo_bar`, and a key whose function the generated code
+ * has already. A group is a property and an inner class `{Name}Group` of the group it is in, a key a function.
+ */
+private fun checkNames(paths: Collection<String>, problems: MutableList<String>) {
+    // group path -> Kotlin name in that group -> the paths it is the name of
+    val names = linkedMapOf<String, MutableMap<String, MutableSet<String>>>()
+    val seen = mutableSetOf<String>()
+    for (path in paths) {
+        val segments = path.split('.')
+        for (end in 1..segments.size) {
+            val child = segments.subList(0, end).joinToString(".")
+            if (!seen.add(child)) continue
+            val group = segments.subList(0, end - 1).joinToString(".")
+            val isKey = end == segments.size
+            val name = if (isKey) toCamelCase(segments[end - 1]) else toPascalCase(segments[end - 1])
+            if (!KOTLIN_NAME.matches(name)) {
+                problems += "`$child` cannot be named in Kotlin; with `_` and `-` set aside, a name starts with a " +
+                    "letter and holds only letters and digits"
+                continue
+            }
+            if (isKey && name in ANY_FUNCTIONS) {
+                problems += "`$child` cannot be a key: its function is `$name`, which every Kotlin object has"
+            }
+            if (isKey && group.isEmpty() && name == "inLanguage") {
+                problems += "`$child` cannot be a key at the top level: its function is `inLanguage`, which the " +
+                    "generated object has for another language"
+            }
+            val taken = names.getOrPut(group) { linkedMapOf() }
+            for (kotlinName in if (isKey) listOf(name) else listOf(name, "${name}Group")) {
+                taken.getOrPut(kotlinName) { sortedSetOf() } += child
+            }
+        }
+    }
+    // Two groups of one name share their class's name too, and are reported once
+    val reported = mutableSetOf<Set<String>>()
+    for (taken in names.values) {
+        for ((kotlinName, children) in taken) {
+            if (children.size < 2 || !reported.add(children)) continue
+            val listed = children.map { "`$it`" }
+            problems += listed.dropLast(1).joinToString(", ") + " and " + listed.last() +
+                " are one Kotlin name, `$kotlinName`"
+        }
+    }
 }
 
 /**

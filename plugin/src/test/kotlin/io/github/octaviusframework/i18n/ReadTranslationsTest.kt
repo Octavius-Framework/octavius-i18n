@@ -8,7 +8,7 @@ import kotlin.test.assertEquals
 class ReadTranslationsTest {
 
     private fun file(path: String, json: String) =
-        TranslationFile(path, path.substringAfterLast('/').substringBefore(".json"), Json.parseToJsonElement(json).jsonObject)
+        TranslationFile(path, path.substringAfterLast('/').removeSuffix(".json"), Json.parseToJsonElement(json).jsonObject)
 
     private fun problems(vararg files: TranslationFile) = readTranslations(files.toList()).problems
 
@@ -130,6 +130,95 @@ class ReadTranslationsTest {
         val translations = readTranslations(listOf(file("main/pl.json", """{ "cohort": { "_one": "kohorta", "_other": "kohorty" } }""")))
         assertEquals(emptyList(), translations.problems)
         assertEquals(listOf("cohort._one", "cohort._other"), translations.keys.map { it.path })
+    }
+
+    @Test
+    fun `names that are one Kotlin name in one group are reported`() {
+        val problems = problems(
+            file(
+                "main/pl.json",
+                """{ "Legion": {
+                    "siege_engines": { "ballista": "Balista" }, "SiegeEngines": { "onager": "Onager" },
+                    "march_on": "Naprzód!", "marchOn": "Marsz!",
+                    "Camp": { "tower": "Wieża" }, "CampGroup": { "gate": "Brama" }
+                } }""",
+            ),
+        )
+        assertEquals(
+            listOf(
+                "`Legion.Camp` and `Legion.CampGroup` are one Kotlin name, `CampGroup`",
+                "`Legion.SiegeEngines` and `Legion.siege_engines` are one Kotlin name, `SiegeEngines`",
+                "`Legion.marchOn` and `Legion.march_on` are one Kotlin name, `marchOn`",
+            ),
+            problems,
+        )
+    }
+
+    @Test
+    fun `a name may repeat in another group, the group it is in among them, and a key may be a group's name in lower case`() {
+        val problems = problems(
+            file(
+                "main/pl.json",
+                """{ "march": "Marsz!", "Legion": { "Legion": { "march": "Marsz!" }, "Orders": { "march": "Marsz!" }, "orders": "Rozkazy" } }""",
+            ),
+        )
+        assertEquals(emptyList(), problems)
+    }
+
+    @Test
+    fun `a name that cannot be a Kotlin name is reported`() {
+        val problems = problems(
+            file("main/pl.json", """{ "Legion": { "9th": { "march": "Marsz!" }, "404": "Nie ma", "night watch": "Straż", "_": "?" } }"""),
+        )
+        val rule = "cannot be named in Kotlin; with `_` and `-` set aside, a name starts with a letter and holds only letters and digits"
+        assertEquals(
+            listOf("`Legion.404` $rule", "`Legion.9th` $rule", "`Legion._` $rule", "`Legion.night watch` $rule"),
+            problems,
+        )
+    }
+
+    @Test
+    fun `a name may hold letters of any alphabet, and digits after the first letter`() {
+        val problems = problems(file("main/pl.json", """{ "Żołnierze": { "centurion_2": "Centurion", "λόγχη": "Włócznia" } }"""))
+        assertEquals(emptyList(), problems)
+    }
+
+    @Test
+    fun `a key cannot have a function that every object or the generated object has`() {
+        val problems = problems(
+            file(
+                "main/pl.json",
+                """{ "in_language": "Po łacinie", "Legion": {
+                    "toString": "Legion", "hash_code": "#", "inLanguage": "Po łacinie", "equals": "{other} to też legion"
+                } }""",
+            ),
+        )
+        assertEquals(
+            listOf(
+                "`Legion.hash_code` cannot be a key: its function is `hashCode`, which every Kotlin object has",
+                "`Legion.toString` cannot be a key: its function is `toString`, which every Kotlin object has",
+                "`in_language` cannot be a key at the top level: its function is `inLanguage`, which the generated " +
+                    "object has for another language",
+            ),
+            problems,
+        )
+    }
+
+    @Test
+    fun `a file not named after a language code is reported, and only so`() {
+        val cohort = """"cohort": { "${'$'}plural": "count", "one": "{count} cohort", "other": "{count} cohorts" }"""
+        val problems = problems(
+            file("main/en.v2.json", "{ $cohort }"),
+            file("main/es-419.json", "{ $cohort }"),
+            file("main/zh_Hant_TW.json", "{ $cohort }"),
+        )
+        assertEquals(
+            listOf(
+                "`en.v2`, the name of main/en.v2.json, is not a language code; a file is named after a language code, " +
+                    "such as pl or pt-BR",
+            ),
+            problems,
+        )
     }
 
     @Test

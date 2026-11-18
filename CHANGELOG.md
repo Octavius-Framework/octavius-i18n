@@ -96,6 +96,16 @@
 - When the current language has no file, the text standing in for it is counted by its own language's plural
   rule. It was counted by the current language's rule, giving the words of one language the forms of another.
 
+- A name the accessors cannot have stops the build, naming the key, where the generated code failed to compile
+  with errors pointing into itself: a key or group whose name, with `_` and `-` set aside, does not start with a
+  letter or holds anything but letters and digits, such as `404` or `night watch`; two names in one group that
+  become one Kotlin name, such as `siege_engines` and `SiegeEngines`; and a key named `toString` or `hashCode`, or
+  `inLanguage` at the top level. See [Translation Files](docs/translation-files.md#from-json-to-kotlin).
+
+- A file not named after a language code, such as `en.v2.json`, stops the build, where its language's generated
+  object got a name that did not compile. The code is the whole file name without `.json`, so `pl.json.json` is
+  no longer taken for `pl`. See [Translation Files](docs/translation-files.md#the-language-of-a-file).
+
 ### Runtime
 
 #### Added
