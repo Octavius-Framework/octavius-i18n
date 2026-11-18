@@ -41,5 +41,6 @@
       "other": "{count} apples"
     },
     "sentence": "{who} bought {what}"
-  }
+  },
+  "pay": "Total: {price, number}"
 }

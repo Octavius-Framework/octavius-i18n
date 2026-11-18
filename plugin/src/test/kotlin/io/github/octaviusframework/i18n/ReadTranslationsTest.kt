@@ -190,6 +190,56 @@ class ReadTranslationsTest {
     }
 
     @Test
+    fun `an argument marked as a number is a Number among the arguments that do not choose`() {
+        val signature = signature(
+            "pay",
+            file("main/en.json", """{ "pay": { "${'$'}select": "role", "other": "{zeta} pays {price, number}" } }"""),
+            file("main/pl.json", """{ "pay": "{zeta} płaci {price,number}" }"""),
+        )
+        assertEquals("role: kotlin.String, price: kotlin.Number, zeta: kotlin.Any", signature)
+    }
+
+    @Test
+    fun `an argument marked as a number in one language is a number in every language`() {
+        val signature = signature(
+            "pay",
+            file("main/en.json", """{ "pay": "Total: {price, number}" }"""),
+            file("main/pl.json", """{ "pay": "Do zapłaty: {price}" }"""),
+        )
+        assertEquals("price: kotlin.Number", signature)
+    }
+
+    @Test
+    fun `a number argument a language leaves out is reported, as any inserted argument is`() {
+        val problems = problems(
+            file("main/en.json", """{ "pay": "Total: {price, number}" }"""),
+            file("main/pl.json", """{ "pay": "Do zapłaty" }"""),
+        )
+        assertEquals(listOf("`pay` uses {price} in en but not in pl"), problems)
+    }
+
+    @Test
+    fun `a format other than number is reported`() {
+        val problems = problems(file("main/pl.json", """{ "pay": "{price, numbr} i {when, date} i {price,}" }"""))
+        assertEquals(
+            listOf(
+                "`pay` in main/pl.json: `{price, numbr}`, `{when, date}`, `{price,}` are not placeholders; " +
+                    "a placeholder is `{name}` or `{name, number}`",
+            ),
+            problems,
+        )
+    }
+
+    @Test
+    fun `an argument written as a number and chosen by as a case is reported`() {
+        val problems = problems(
+            file("main/en.json", """{ "pay": "Total: {price, number}" }"""),
+            file("main/pl.json", """{ "pay": { "${'$'}select": "price", "other": "Do zapłaty" } }"""),
+        )
+        assertEquals(listOf("`pay` writes `price` as a number in en but chooses by it as a `${'$'}select` in pl"), problems)
+    }
+
+    @Test
     fun `a keyword is a parameter in backticks`() {
         assertEquals("`in`: kotlin.Any", signature("gate", file("main/en.json", """{ "gate": "Gate {in}" }""")))
     }

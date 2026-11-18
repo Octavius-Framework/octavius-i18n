@@ -1,12 +1,13 @@
 package io.github.octaviusframework.i18n
 
-/** The private function in each language's file that writes a count in the language's number format. */
+/** The private function in each language's file that writes a number in the language's number format. */
 private const val NUMBER_FUNCTION = "___number"
 
 /**
  * The source of `{objectName}Translations{Lang}.kt`: the translations of [keys] in [lang] compiled to Kotlin, one
  * function per key, implementing the translations interface, and each of the language's [rules] a key asks. A
- * count inserted into the text is written in the language's CLDR number format, which the object holds.
+ * number inserted into the text, a count or an argument marked `{name, number}`, is written in the language's CLDR
+ * number format, which the object holds.
  */
 internal fun languageSource(
     packageName: String,
@@ -35,7 +36,7 @@ internal fun languageSource(
             val message = key.messages.getValue(lang)
             val counts = key.signature.parameters.filter { it.type == "kotlin.Number" }.map { it.argument }.toSet()
             val inserted = mutableMapOf<String, MutableSet<Use>>().also { message.collectUses(it) }
-                .filterValues { Use.TEXT in it }.keys
+                .filterValues { Use.TEXT in it || Use.NUMBER in it }.keys
             if (counts.any { it in inserted }) writesNumbers = true
             val inserts = key.signature.parameters.associate {
                 it.argument to if (it.argument in counts) "$NUMBER_FUNCTION(${it.name})" else it.name

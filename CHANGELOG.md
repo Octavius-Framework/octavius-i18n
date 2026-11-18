@@ -29,6 +29,11 @@
   another number the same way: `Tr.Legion.pay(Tr.numberFormat.format(12500.5))`. It is a property, so no key can
   take its name.
 
+- `{price, number}` marks an argument as a number: its parameter is a `Number`, and it is written in the
+  language's number format, as a count is, in every language. Other arguments are inserted as they print, so a
+  year or an id is never grouped. A name with anything else after a comma, such as `{price, numbr}`, stops the
+  build.
+
 - `Tr.inLanguage(code)`, the same keys in another language than the current one, which it leaves alone:
   `Tr.inLanguage("pl").Legion.Orders.march()`. The language is found as the current one is and kept, so a server
   can answer each user in their own. Every code that finds one language gives the same object, made the first
@@ -64,9 +69,9 @@
 
 - **[BREAKING]** A count, the argument a `$plural` or a `$ordinal` chooses by, is written in its language's number
   format from CLDR 49, which the plugin carries and compiles into the language's file: its decimal separator, its
-  grouping, its minus sign and its digits. Polish writes `1,5` and
-  `10 000`, English `1.5` and `10,000`, where both wrote `1.5` and `10000`. The digits are the ones Kotlin prints,
-  neither rounded nor padded. Every other argument is inserted as it prints, as before. See
+  grouping, its minus sign and its digits. Polish writes `1,5` and `10 000`, English `1.5` and `10,000`, where
+  both wrote `1.5` and `10000`. The digits are the ones Kotlin prints, neither rounded nor padded. Every other
+  argument not marked `{name, number}` is inserted as it prints, as before. See
   [Plurals](docs/plurals.md#how-a-count-is-written).
 
 - **[BREAKING]** A plural key's accessor takes one `count: Number` instead of an `Int` and a `Double` overload.

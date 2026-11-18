@@ -59,5 +59,6 @@
       "other": "{count} jabłek"
     },
     "sentence": "{who} kupił {what}"
-  }
+  },
+  "pay": "Do zapłaty: {price, number} zł"
 }

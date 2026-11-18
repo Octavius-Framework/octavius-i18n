@@ -98,9 +98,9 @@ language after a switch.
 ## Placeholders
 
 A name in braces is a placeholder, and its function takes an `Any` parameter of that name, in backticks if it is
-a Kotlin keyword. Each argument is inserted with `toString()`, except a count, which a `$plural` or a `$ordinal`
-chooses by: that is written in the language's number format — see
-[Plurals](plurals.md#how-a-count-is-written).
+a Kotlin keyword. Each argument is inserted with `toString()`, except a number: a count, which a `$plural` or a
+`$ordinal` chooses by, or an argument marked `{name, number}`. A number's parameter is a `Number`, and it is
+written in the language's number format — see [Plurals](plurals.md#how-a-count-is-written).
 
 ```json
 "greeting": "Ave, {name}! Witaj w legionie {legion}."
@@ -115,7 +115,8 @@ Tr.Legion.greeting("IX", "Marcus")                   // the same
   `greeting(legion: Any, name: Any)` in every language, whatever order a translation puts them in. Arguments a
   [choice](choices.md) chooses by come before the rest.
 - A name starts with a letter, followed by letters, digits and `_`. Anything else in braces is text, such as
-  `{ name }` or `{_x}`, except a number: `{0}` stops the build, which asks for a name instead.
+  `{ name }` or `{_x}`, except a number, `{0}`, and a name with anything after a comma but `number`, such as
+  `{price, numbr}`: both stop the build.
 - A placeholder cannot be escaped, so a translation cannot show a literal `{name}`.
 - An argument is inserted as it is. An argument that itself contains `{legion}` is not expanded.
 

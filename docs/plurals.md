@@ -91,13 +91,20 @@ CLDR 49 has them.
 Polish groups only from five digits on, with a no-break space. The digits are the ones Kotlin prints, neither
 rounded nor padded: `1.0` stays `1,0`.
 
-**Only a count is formatted.** Any other argument is inserted as it prints, so a year stays `2026` rather than
-`2,026`. To write another number in the current language's format, format it with `Tr.numberFormat` and pass it
-in:
+**Besides a count, only an argument marked as a number is formatted.** `{price, number}` makes `price` a
+`Number`, written the way counts are, in every language:
+
+```json
+"pay": "Do zapłaty: {price, number} zł"
+```
 
 ```kotlin
-Tr.Legion.pay(Tr.numberFormat.format(12500.5))   // "12 500,5" while the current language is Polish
+Tr.Legion.pay(12500.5)   // "Do zapłaty: 12 500,5 zł"
 ```
+
+Every other argument is inserted as it prints, so `{year}` stays `2026` rather than `2,026`: a number is not always
+a quantity. To write a number in the current language's format elsewhere, format it with `Tr.numberFormat`:
+`Tr.numberFormat.format(12500.5)` is `12 500,5` while the current language is Polish.
 
 `Tr.numberFormat` is the format the current language's counts are written in; a language with no file has the
 format of the one standing in for it. Each language's format is CLDR's, compiled into its generated file as its

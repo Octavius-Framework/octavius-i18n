@@ -184,6 +184,14 @@ class I18nTest {
     }
 
     @Test
+    fun `test an argument marked as a number is written in the language's format`() {
+        OctaviusI18n.currentLanguage = "pl"
+        assertEquals("Do zapłaty: 12\u00A0500,5 zł", Tr.pay(12500.5))
+        OctaviusI18n.currentLanguage = "en"
+        assertEquals("Total: 12,500.5", Tr.pay(12500.5))
+    }
+
+    @Test
     fun `test a language code finds its file as a plural rule is found`() {
         for (code in listOf("pl", "PL", "pl-PL", "pl_PL", "PL-pl")) {
             OctaviusI18n.currentLanguage = code

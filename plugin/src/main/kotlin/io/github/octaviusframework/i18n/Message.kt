@@ -23,12 +23,16 @@ internal sealed interface Message {
     fun toKotlin(rendering: Rendering, indent: String): String
 }
 
-/** What a message does with an argument: inserts it into the text, or chooses by it under [discriminator]. */
-internal enum class Use(val discriminator: String?) {
-    TEXT(null),
-    PLURAL("\$plural"),
-    ORDINAL("\$ordinal"),
-    SELECT("\$select"),
+/**
+ * What a message does with an argument: inserts it into the text, as it prints or as a number, or chooses by it
+ * under [discriminator]. [number] is whether the argument is a number.
+ */
+internal enum class Use(val discriminator: String?, val number: Boolean) {
+    TEXT(null, false),
+    NUMBER(null, true),
+    PLURAL("\$plural", true),
+    ORDINAL("\$ordinal", true),
+    SELECT("\$select", false),
 }
 
 /** The discriminators of a choice. */
