@@ -108,7 +108,7 @@ class I18nTest {
         assertEquals("Anna zaprosiła 3 znajomych", Tr.Users.invited(3, "female", "Anna"))
         assertEquals("Jan nikogo nie zaprosił", Tr.Users.invited(0.0, "male", "Jan"))
         assertEquals("Jan zaprosił 5 znajomych", Tr.Users.invited(5, "male", "Jan"))
-        assertEquals("Jan zaprosił 1.5 znajomego", Tr.Users.invited(1.5, "male", "Jan"))
+        assertEquals("Jan zaprosił 1,5 znajomego", Tr.Users.invited(1.5, "male", "Jan"))
 
         OctaviusI18n.currentLanguage = "en"
         assertEquals("Anna invited nobody", Tr.Users.invited(0, "female", "Anna"))
@@ -122,9 +122,9 @@ class I18nTest {
         assertEquals("Bob kupił 3 przedmioty", Tr.Users.purchased(3L, "Bob"))
         assertEquals("Bob kupił 3 przedmioty", Tr.Users.purchased(3.toShort(), "Bob"))
         // Beyond Int, the last digits still decide: 3 000 000 002 ends in 2, as 2 does
-        assertEquals("Bob kupił 3000000002 przedmioty", Tr.Users.purchased(3_000_000_002L, "Bob"))
-        assertEquals("Bob kupił 1.5 przedmiotów", Tr.Users.purchased(1.5, "Bob"))
-        assertEquals("Bob kupił 1.5 przedmiotów", Tr.Users.purchased(1.5f, "Bob"))
+        assertEquals("Bob kupił 3\u00A0000\u00A0000\u00A0002 przedmioty", Tr.Users.purchased(3_000_000_002L, "Bob"))
+        assertEquals("Bob kupił 1,5 przedmiotów", Tr.Users.purchased(1.5, "Bob"))
+        assertEquals("Bob kupił 1,5 przedmiotów", Tr.Users.purchased(1.5f, "Bob"))
 
         // `=0` is used for exactly 0 in a language that has it, and the rule decides in one that does not
         OctaviusI18n.currentLanguage = "en"
@@ -156,6 +156,29 @@ class I18nTest {
         assertEquals("1.50 users", Tr.Users.count(java.math.BigDecimal("1.50")))
         OctaviusI18n.currentLanguage = "pl"
         assertEquals("1 użytkownik", Tr.Users.count(1))
-        assertEquals("1.0 użytkowników", Tr.Users.count(1.0))
+        assertEquals("1,0 użytkowników", Tr.Users.count(1.0))
+    }
+
+    @Test
+    fun `test a count is written in the number format of its language`() {
+        OctaviusI18n.currentLanguage = "en"
+        assertEquals("1,000 users", Tr.Users.count(1000))
+        assertEquals("10,000.5 users", Tr.Users.count(10000.5))
+        OctaviusI18n.currentLanguage = "pl"
+        assertEquals("1000 użytkowników", Tr.Users.count(1000))
+        assertEquals("10\u00A0000,5 użytkowników", Tr.Users.count(10000.5))
+        // Only a count is formatted: another argument is inserted as it prints
+        assertEquals("Witaj 10000", Tr.welcome(10000))
+    }
+
+    @Test
+    fun `test the current language's number format writes any number`() {
+        OctaviusI18n.currentLanguage = "pl"
+        assertEquals("Witaj 12\u00A0500,5", Tr.welcome(Tr.numberFormat.format(12500.5)))
+        OctaviusI18n.currentLanguage = "en"
+        assertEquals("Welcome 12,500.5", Tr.welcome(Tr.numberFormat.format(12500.5)))
+        // A language with no file writes numbers as the one standing in for it
+        OctaviusI18n.currentLanguage = "de"
+        assertEquals("12,500.5", Tr.numberFormat.format(12500.5))
     }
 }

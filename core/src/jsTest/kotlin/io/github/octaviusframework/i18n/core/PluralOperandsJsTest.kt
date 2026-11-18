@@ -10,5 +10,6 @@ class PluralOperandsJsTest {
         assertEquals("1", 1.0.toString())
         assertEquals(0L, PluralOperands.of(1.0)!!.v)
         assertEquals(1L, PluralOperands.of(1.5)!!.v)
+        assertEquals("1", NumberFormat(decimal = ",").format(1.0))
     }
 }

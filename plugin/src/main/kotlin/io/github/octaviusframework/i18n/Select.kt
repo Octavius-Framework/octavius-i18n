@@ -13,17 +13,17 @@ internal class Select(private val argument: String, private val cases: Map<Strin
     override fun usesRule(kind: PluralKind, ruleForms: (PluralKind) -> Set<String>): Boolean =
         cases.values.any { it.usesRule(kind, ruleForms) }
 
-    override fun toKotlin(parameters: Map<String, String>, ruleForms: (PluralKind) -> Set<String>, indent: String): String {
+    override fun toKotlin(rendering: Rendering, indent: String): String {
         val other = cases.getValue("other")
-        if (cases.size == 1) return other.toKotlin(parameters, ruleForms, indent)
+        if (cases.size == 1) return other.toKotlin(rendering, indent)
         val inner = "$indent    "
         return buildString {
-            appendLine("when (${parameters.getValue(argument)}) {")
+            appendLine("when (${rendering.parameters.getValue(argument)}) {")
             for ((case, message) in cases) {
                 if (case == "other") continue
-                appendLine("$inner\"${escapeString(case)}\" -> ${message.toKotlin(parameters, ruleForms, inner)}")
+                appendLine("$inner\"${escapeString(case)}\" -> ${message.toKotlin(rendering, inner)}")
             }
-            appendLine("${inner}else -> ${other.toKotlin(parameters, ruleForms, inner)}")
+            appendLine("${inner}else -> ${other.toKotlin(rendering, inner)}")
             append("$indent}")
         }
     }

@@ -25,6 +25,10 @@
   chooses by it, and may hold a key as a plain string where another holds a plural, such as
   `"{count} コホート"`.
 
+- `Tr.numberFormat`, the number format of the current language, the one its counts are written in, for writing
+  another number the same way: `Tr.Legion.pay(Tr.numberFormat.format(12500.5))`. It is a property, so no key can
+  take its name.
+
 #### Changed
 
 - **[BREAKING]** A plural is written with `$plural`, and an object of `_one`/`_other` forms is an ordinary group
@@ -41,6 +45,13 @@
 - **[BREAKING]** Each language's translations are compiled into a Kotlin object with one function per key, where
   they were maps looked up by key on every call. The generated `{ObjectName}Translations{Lang}` objects are
   `internal` and implement a generated `internal` interface instead of `TranslationData`.
+
+- **[BREAKING]** A count, the argument a `$plural` or a `$ordinal` chooses by, is written in its language's number
+  format from CLDR 49, which the plugin carries and compiles into the language's file: its decimal separator, its
+  grouping, its minus sign and its digits. Polish writes `1,5` and
+  `10 000`, English `1.5` and `10,000`, where both wrote `1.5` and `10000`. The digits are the ones Kotlin prints,
+  neither rounded nor padded. Every other argument is inserted as it prints, as before. See
+  [Plurals](docs/plurals.md#how-a-count-is-written).
 
 - **[BREAKING]** A plural key's accessor takes one `count: Number` instead of an `Int` and a `Double` overload.
   `cohort(5)` and `cohort(1.5)` compile as before. A count is counted by the digits it prints, which are the
@@ -71,6 +82,9 @@
 - `PluralOperands`, the operands of a count that CLDR's plural rules read, taken from the count as it prints. The
   generated rules call it.
 
+- `NumberFormat`, a language's way of writing a number: its separators, its grouping, its minus sign and its
+  digits. The generated code builds each language's from CLDR.
+
 #### Removed
 
 - **[BREAKING]** `TranslationData`, `PluralForms`, `OctaviusI18n.lookup`, `lookupPlural` and `formatString`. The
@@ -88,6 +102,9 @@
 
 - The plugin's tests check every CLDR rule against the samples CLDR gives for it: 12 259 for the plural rules of
   225 languages and 2 732 for the ordinal rules of 109.
+
+- The plugin's build has a `cldrNumberFormats` task, which extracts every CLDR locale's number format from an
+  unpacked `cldr-numbers-full` package into the plugin's `cldr/numbers.json`.
 
 ## Version 1.2.0 (v1.2.0)
 

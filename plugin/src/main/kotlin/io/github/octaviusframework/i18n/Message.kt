@@ -19,11 +19,8 @@ internal sealed interface Message {
      */
     fun usesRule(kind: PluralKind, ruleForms: (PluralKind) -> Set<String>): Boolean
 
-    /**
-     * A Kotlin expression rendering this message, with [parameters] naming each argument's parameter, in a
-     * language whose rule of each kind names the forms [ruleForms] gives. Lines after the first start with [indent].
-     */
-    fun toKotlin(parameters: Map<String, String>, ruleForms: (PluralKind) -> Set<String>, indent: String): String
+    /** A Kotlin expression rendering this message with [rendering]. Lines after the first start with [indent]. */
+    fun toKotlin(rendering: Rendering, indent: String): String
 }
 
 /** What a message does with an argument: inserts it into the text, or chooses by it under [discriminator]. */

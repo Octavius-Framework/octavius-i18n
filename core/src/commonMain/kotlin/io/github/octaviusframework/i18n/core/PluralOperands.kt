@@ -25,7 +25,6 @@ class PluralOperands private constructor(
     val c: Long get() = 0
 
     companion object {
-        private val NUMBER = Regex("""-?(\d*)(?:\.(\d*))?(?:[eE]([+-]?\d+))?""")
         private const val ABOVE = 1_000_000_000_000_000_000L
 
         /** The operands of [count] as it prints, or null when it prints with no digits, as `NaN` does. */
@@ -33,27 +32,10 @@ class PluralOperands private constructor(
 
         /** The operands of a number written as [text], such as `1.50` or `1.0E10`, or null when it is not one. */
         fun of(text: String): PluralOperands? {
-            val match = NUMBER.matchEntire(text) ?: return null
-            val whole = match.groupValues[1]
-            val fraction = match.groupValues[2]
-            if (whole.isEmpty() && fraction.isEmpty()) return null
-            val exponent = match.groupValues[3].ifEmpty { "0" }.toInt()
-
-            // Moving the point by the exponent, `1.5E3` is `1500` and `1.5E-3` is `0.0015`
-            val digits = whole + fraction
-            val point = whole.length + exponent
-            val integer = when {
-                point <= 0 -> ""
-                point >= digits.length -> digits + "0".repeat(point - digits.length)
-                else -> digits.substring(0, point)
-            }
-            val shown = when {
-                point <= 0 -> "0".repeat(-point) + digits
-                point >= digits.length -> ""
-                else -> digits.substring(point)
-            }
+            val number = PrintedNumber.of(text) ?: return null
+            val shown = number.fraction
             val trimmed = shown.trimEnd('0')
-            return PluralOperands(value(integer), shown.length.toLong(), trimmed.length.toLong(), value(shown), value(trimmed))
+            return PluralOperands(value(number.integer), shown.length.toLong(), trimmed.length.toLong(), value(shown), value(trimmed))
         }
 
         private fun value(digits: String): Long {

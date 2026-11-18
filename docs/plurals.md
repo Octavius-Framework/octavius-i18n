@@ -9,6 +9,7 @@ A plural key holds one string per form, and the language's rule decides which fo
 Contents:
 * [A plural key](#a-plural-key)
 * [How a form is chosen](#how-a-form-is-chosen)
+* [How a count is written](#how-a-count-is-written)
 * [The rules come from CLDR](#the-rules-come-from-cldr)
 * [Which rule a language takes](#which-rule-a-language-takes)
 * [Arguments beside the count](#arguments-beside-the-count)
@@ -37,14 +38,16 @@ Tr.Legion.Units.cohort(1)      // "1 kohorta"
 Tr.Legion.Units.cohort(3)      // "3 kohorty"
 Tr.Legion.Units.cohort(12)     // "12 kohort"
 Tr.Legion.Units.cohort(22)     // "22 kohorty"
-Tr.Legion.Units.cohort(1.5)    // "1.5 kohorty"
+Tr.Legion.Units.cohort(1.5)    // "1,5 kohorty"
 ```
 
-The count is inserted as Kotlin prints it: `1.5`, with a point, in every language.
+The count is written in the language's number format: `1,5`, with a comma, in Polish — see
+[How a count is written](#how-a-count-is-written).
 
-**The form is chosen from the count as it prints**, so it agrees with what is read. `Int`, `Long`, `Short` and
-`Byte` print no fraction digits; `cohort(1.0)` prints `1.0`, a fraction digit, and reads `1.0 kohorty`. A
-`BigDecimal` keeps the digits it was written with. Kotlin/JS prints `1.0` as `1`, and there it is counted as `1`.
+**The form is chosen from the digits Kotlin prints for the count**, which are the digits written, so it agrees
+with what is read. `Int`, `Long`, `Short` and `Byte` print no fraction digits; `cohort(1.0)` prints `1.0`, a
+fraction digit, and reads `1,0 kohorty`. A `BigDecimal` keeps the digits it was written with. Kotlin/JS prints
+`1.0` as `1`, and there it is counted and written as `1`.
 
 | Key                                 | Takes                                                  |
 |:------------------------------------|:-------------------------------------------------------|
@@ -70,6 +73,53 @@ A key needs only the forms its language tells apart, plus `other`. A plural with
 
 **`=0` is not the form `zero`.** Some languages' rules give `zero` to counts other than 0, so a text meant for
 nothing at all, such as `no cohorts`, belongs under `=0`.
+
+## How a count is written
+
+A count, an argument that a `$plural` or a `$ordinal` chooses by in some language, is written in the number
+format of the translation's language: its decimal separator, its grouping, its minus sign and its digits, as
+CLDR 49 has them.
+
+| Language | 1000    | 10000    | 1234567     | 1.5   |
+|:---------|:--------|:---------|:------------|:------|
+| `pl`     | `1000`  | `10 000` | `1 234 567` | `1,5` |
+| `en`     | `1,000` | `10,000` | `1,234,567` | `1.5` |
+| `de-CH`  | `1'000` | `10'000` | `1'234'567` | `1.5` |
+| `hi`     | `1,000` | `10,000` | `12,34,567` | `1.5` |
+| `ar-EG`  | `١٬٠٠٠` | `١٠٬٠٠٠` | `١٬٢٣٤٬٥٦٧` | `١٫٥` |
+
+Polish groups only from five digits on, with a no-break space. The digits are the ones Kotlin prints, neither
+rounded nor padded: `1.0` stays `1,0`.
+
+**Only a count is formatted.** Any other argument is inserted as it prints, so a year stays `2026` rather than
+`2,026`. To write another number in the current language's format, format it with `Tr.numberFormat` and pass it
+in:
+
+```kotlin
+Tr.Legion.pay(Tr.numberFormat.format(12500.5))   // "12 500,5" while the current language is Polish
+```
+
+`Tr.numberFormat` is the format the current language's counts are written in; a language with no file has the
+format of the one standing in for it. Each language's format is CLDR's, compiled into its generated file as its
+plural rule is, and found the same way: `pt-BR` takes the format of `pt`, and a code CLDR has no format for takes
+CLDR's root one, which writes `1,234.5`.
+
+A count to be written some other way, or not formatted at all, can be passed twice: once to choose by, and once
+as an argument that is only inserted into the text.
+
+```json
+"cohort": {
+  "$plural": "count",
+  "one":   "{shown} kohorta",
+  "few":   "{shown} kohorty",
+  "many":  "{shown} kohort",
+  "other": "{shown} kohorty"
+}
+```
+
+```kotlin
+Tr.Legion.Units.cohort(count = 10000, shown = 10000)   // "10000 kohort"
+```
 
 ## The rules come from CLDR
 

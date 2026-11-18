@@ -11,12 +11,12 @@ internal class Template private constructor(val text: String) : Message {
 
     override fun usesRule(kind: PluralKind, ruleForms: (PluralKind) -> Set<String>): Boolean = false
 
-    override fun toKotlin(parameters: Map<String, String>, ruleForms: (PluralKind) -> Set<String>, indent: String): String {
+    override fun toKotlin(rendering: Rendering, indent: String): String {
         val literal = StringBuilder("\"")
         var end = 0
         for (match in PLACEHOLDER.findAll(text)) {
             literal.append(escapeString(text.substring(end, match.range.first)))
-            literal.append("\${").append(parameters.getValue(match.groupValues[1])).append('}')
+            literal.append("\${").append(rendering.inserts.getValue(match.groupValues[1])).append('}')
             end = match.range.last + 1
         }
         literal.append(escapeString(text.substring(end))).append('"')

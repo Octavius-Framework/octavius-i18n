@@ -28,31 +28,31 @@ internal class Plural(
             exact.any { it.second.usesRule(kind, ruleForms) } ||
             forms.values.any { it.usesRule(kind, ruleForms) }
 
-    override fun toKotlin(parameters: Map<String, String>, ruleForms: (PluralKind) -> Set<String>, indent: String): String {
-        val count = parameters.getValue(argument)
+    override fun toKotlin(rendering: Rendering, indent: String): String {
+        val count = rendering.parameters.getValue(argument)
         val inner = "$indent    "
-        if (exact.isEmpty()) return byForm(count, parameters, ruleForms, indent)
+        if (exact.isEmpty()) return byForm(count, rendering, indent)
         return buildString {
             appendLine("when {")
             for ((value, message) in exact) {
-                appendLine("$inner$count.toDouble() == $value -> ${message.toKotlin(parameters, ruleForms, inner)}")
+                appendLine("$inner$count.toDouble() == $value -> ${message.toKotlin(rendering, inner)}")
             }
-            appendLine("${inner}else -> ${byForm(count, parameters, ruleForms, inner)}")
+            appendLine("${inner}else -> ${byForm(count, rendering, inner)}")
             append("$indent}")
         }
     }
 
-    private fun byForm(count: String, parameters: Map<String, String>, ruleForms: (PluralKind) -> Set<String>, indent: String): String {
+    private fun byForm(count: String, rendering: Rendering, indent: String): String {
         val other = forms.getValue("other")
-        val reachable = reachable(ruleForms(kind))
-        if (reachable.isEmpty()) return other.toKotlin(parameters, ruleForms, indent)
+        val reachable = reachable(rendering.ruleForms(kind))
+        if (reachable.isEmpty()) return other.toKotlin(rendering, indent)
         val inner = "$indent    "
         return buildString {
             appendLine("when (${kind.function}($count)) {")
             for (form in reachable) {
-                appendLine("$inner\"$form\" -> ${forms.getValue(form).toKotlin(parameters, ruleForms, inner)}")
+                appendLine("$inner\"$form\" -> ${forms.getValue(form).toKotlin(rendering, inner)}")
             }
-            appendLine("${inner}else -> ${other.toKotlin(parameters, ruleForms, inner)}")
+            appendLine("${inner}else -> ${other.toKotlin(rendering, inner)}")
             append("$indent}")
         }
     }

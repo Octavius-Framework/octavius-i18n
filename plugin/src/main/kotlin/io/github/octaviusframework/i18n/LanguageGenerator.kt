@@ -1,8 +1,12 @@
 package io.github.octaviusframework.i18n
 
+/** The private function in each language's file that writes a count in the language's number format. */
+private const val NUMBER_FUNCTION = "___number"
+
 /**
  * The source of `{objectName}Translations{Lang}.kt`: the translations of [keys] in [lang] compiled to Kotlin, one
- * function per key, implementing the translations interface, and each of the language's [rules] a key asks.
+ * function per key, implementing the translations interface, and each of the language's [rules] a key asks. A
+ * count inserted into the text is written in the language's CLDR number format, which the object holds.
  */
 internal fun languageSource(
     packageName: String,
@@ -13,6 +17,7 @@ internal fun languageSource(
 ): String {
     val className = "${objectName}Translations${toPascalCase(lang)}"
     val ruleForms = { kind: PluralKind -> rules[kind]?.forms ?: setOf("other") }
+    var writesNumbers = false
     return buildString {
         appendLine("package $packageName")
         appendLine()
@@ -22,12 +27,23 @@ internal fun languageSource(
         appendLine(" * This file is auto-generated. Do not edit manually.")
         appendLine(" */")
         appendLine("internal object $className : ${objectName}Translations {")
+        appendLine()
+        appendLine("    /** The number format of `$lang`, CLDR ${CldrNumbers.version}'s. */")
+        appendLine("    override val numberFormat: io.github.octaviusframework.i18n.core.NumberFormat =")
+        appendLine("        ${CldrNumbers.formatFor(lang).toKotlin()}")
         for (key in keys) {
             val message = key.messages.getValue(lang)
+            val counts = key.signature.parameters.filter { it.type == "kotlin.Number" }.map { it.argument }.toSet()
+            val inserted = mutableMapOf<String, MutableSet<Use>>().also { message.collectUses(it) }
+                .filterValues { Use.TEXT in it }.keys
+            if (counts.any { it in inserted }) writesNumbers = true
+            val inserts = key.signature.parameters.associate {
+                it.argument to if (it.argument in counts) "$NUMBER_FUNCTION(${it.name})" else it.name
+            }
             appendLine()
             appendLine(
                 "    override fun ${memberName(key.path)}(${key.signature.declaration()}): kotlin.String = " +
-                    message.toKotlin(key.signature.names(), ruleForms, "    ")
+                    message.toKotlin(Rendering(key.signature.names(), inserts, ruleForms), "    ")
             )
         }
         appendLine("}")
@@ -36,6 +52,11 @@ internal fun languageSource(
                 appendLine()
                 append(rules.getValue(kind).functionSource())
             }
+        }
+        if (writesNumbers) {
+            appendLine()
+            appendLine("/** [count] in the number format of `$lang`. */")
+            appendLine("private fun $NUMBER_FUNCTION(count: kotlin.Number): kotlin.String = $className.numberFormat.format(count)")
         }
     }
 }

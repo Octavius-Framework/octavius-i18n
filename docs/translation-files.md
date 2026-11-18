@@ -95,7 +95,9 @@ language after a switch.
 ## Placeholders
 
 A name in braces is a placeholder, and its function takes an `Any` parameter of that name, in backticks if it is
-a Kotlin keyword. Each argument is inserted with `toString()`.
+a Kotlin keyword. Each argument is inserted with `toString()`, except a count, which a `$plural` or a `$ordinal`
+chooses by: that is written in the language's number format — see
+[Plurals](plurals.md#how-a-count-is-written).
 
 ```json
 "greeting": "Ave, {name}! Witaj w legionie {legion}."

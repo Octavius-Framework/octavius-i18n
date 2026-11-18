@@ -77,6 +77,14 @@ internal class TrGenerator(private val packageName: String, private val objectNa
         indentLevel--
         appendLine()
 
+        // A property, so no key, which becomes a function or an object, can take its name
+        appendLine("/** The number format of the current language, the one counts are written in, for writing another number. */")
+        appendLine("public val numberFormat: io.github.octaviusframework.i18n.core.NumberFormat")
+        indentLevel++
+        appendLine("get() = ___data.numberFormat")
+        indentLevel--
+        appendLine()
+
         val root = Group()
         for (key in translations.keys) {
             val segments = key.path.split('.')
@@ -95,6 +103,7 @@ internal class TrGenerator(private val packageName: String, private val objectNa
         appendLine("/** The translations of [$objectName] in one language. */")
         appendLine("internal interface $interfaceName {")
         indentLevel++
+        appendLine("val numberFormat: io.github.octaviusframework.i18n.core.NumberFormat")
         for (key in translations.keys) {
             appendLine("fun ${memberName(key.path)}(${key.signature.declaration()}): kotlin.String")
         }
