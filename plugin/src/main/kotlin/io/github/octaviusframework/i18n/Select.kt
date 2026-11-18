@@ -10,9 +10,10 @@ internal class Select(private val argument: String, private val cases: Map<Strin
         cases.values.forEach { it.collectUses(uses) }
     }
 
-    override fun usesPluralRule(ruleForms: Set<String>): Boolean = cases.values.any { it.usesPluralRule(ruleForms) }
+    override fun usesRule(kind: PluralKind, ruleForms: (PluralKind) -> Set<String>): Boolean =
+        cases.values.any { it.usesRule(kind, ruleForms) }
 
-    override fun toKotlin(parameters: Map<String, String>, ruleForms: Set<String>, indent: String): String {
+    override fun toKotlin(parameters: Map<String, String>, ruleForms: (PluralKind) -> Set<String>, indent: String): String {
         val other = cases.getValue("other")
         if (cases.size == 1) return other.toKotlin(parameters, ruleForms, indent)
         val inner = "$indent    "

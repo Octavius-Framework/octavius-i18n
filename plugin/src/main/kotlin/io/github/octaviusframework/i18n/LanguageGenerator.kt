@@ -2,11 +2,17 @@ package io.github.octaviusframework.i18n
 
 /**
  * The source of `{objectName}Translations{Lang}.kt`: the translations of [keys] in [lang] compiled to Kotlin, one
- * function per key, implementing the translations interface, and the language's plural [rule] when a key asks it.
+ * function per key, implementing the translations interface, and each of the language's [rules] a key asks.
  */
-internal fun languageSource(packageName: String, objectName: String, lang: String, keys: List<TranslationKey>, rule: PluralRule?): String {
+internal fun languageSource(
+    packageName: String,
+    objectName: String,
+    lang: String,
+    keys: List<TranslationKey>,
+    rules: Map<PluralKind, PluralRule>,
+): String {
     val className = "${objectName}Translations${toPascalCase(lang)}"
-    val ruleForms = rule?.forms ?: setOf("other")
+    val ruleForms = { kind: PluralKind -> rules[kind]?.forms ?: setOf("other") }
     return buildString {
         appendLine("package $packageName")
         appendLine()
@@ -25,9 +31,11 @@ internal fun languageSource(packageName: String, objectName: String, lang: Strin
             )
         }
         appendLine("}")
-        if (keys.any { it.messages.getValue(lang).usesPluralRule(ruleForms) }) {
-            appendLine()
-            append(rule!!.functionSource())
+        for (kind in PluralKind.entries) {
+            if (keys.any { it.messages.getValue(lang).usesRule(kind, ruleForms) }) {
+                appendLine()
+                append(rules.getValue(kind).functionSource())
+            }
         }
     }
 }

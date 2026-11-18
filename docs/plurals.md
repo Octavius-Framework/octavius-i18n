@@ -13,6 +13,7 @@ Contents:
 * [Which rule a language takes](#which-rule-a-language-takes)
 * [Arguments beside the count](#arguments-beside-the-count)
 * [Two counts in one sentence](#two-counts-in-one-sentence)
+* [Ordinals](#ordinals)
 
 ## A plural key
 
@@ -167,3 +168,33 @@ Turned the other way round, the verb would follow the towers, and one legionary 
 
 Both counts can also go into one key, with a `$plural` in each branch of another — see
 [Choices](choices.md#a-choice-inside-a-choice).
+
+## Ordinals
+
+`$ordinal` chooses by a place in order rather than by how many, as English tells `1st` from `2nd`, `3rd` and
+`4th`. It is written as a `$plural` is, and its forms come from the language's ordinal rule, also CLDR's:
+
+```json
+"numbered": {
+  "$ordinal": "number",
+  "one":   "the {number}st legion",
+  "two":   "the {number}nd legion",
+  "few":   "the {number}rd legion",
+  "other": "the {number}th legion"
+}
+```
+
+```kotlin
+OctaviusI18n.currentLanguage = "en"
+Tr.Legion.numbered(1)     // "the 1st legion"
+Tr.Legion.numbered(22)    // "the 22nd legion"
+Tr.Legion.numbered(13)    // "the 13th legion"
+Tr.Legion.numbered(10)    // "the 10th legion"
+```
+
+Exact values work as in a `$plural`, and an ordinal can sit in a branch of another choice. One argument cannot
+be a `$plural` in one language and a `$ordinal` in another.
+
+Many languages have no forms to choose here. Polish writes `10. legion`, and its ordinal rule names only `other`,
+so its file holds a plain string, `"{number}. legion"`. CLDR has an ordinal rule for 109 of its 225 languages,
+looked up as a plural rule is; a language it has none for counts every place as `other`.

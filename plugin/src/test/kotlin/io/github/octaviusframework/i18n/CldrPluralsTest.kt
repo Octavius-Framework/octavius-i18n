@@ -8,6 +8,10 @@ import kotlin.test.assertNull
 
 class CldrPluralsTest {
 
+    private fun cardinal(language: String) = PluralKind.CARDINAL.cldr.ruleFor(language)
+
+    private fun ordinal(language: String) = PluralKind.ORDINAL.cldr.ruleFor(language)
+
     /** The form [rule] names for [operands], read off its conditions as the generated `when` reads them. */
     private fun form(rule: PluralRule, operands: PluralOperands): String =
         rule.conditions.entries.firstOrNull { it.value.matches(operands) }?.key ?: "other"
@@ -44,47 +48,67 @@ class CldrPluralsTest {
             generateSequence(start) { it + step }.takeWhile { it <= end }.map { it.toPlainString() }.toList()
         }
 
-    @Test
-    fun `every CLDR rule names the form of every sample CLDR gives for it`() {
+    /** How many samples CLDR gives for [kind], each checked against the rule it is given for. */
+    private fun checkSamples(kind: PluralKind): Int {
         var checked = 0
-        for ((locale, entry) in CldrPlurals.entries) {
-            val rule = PluralRule.parse(locale, entry)
+        for ((locale, entry) in kind.cldr.entries) {
+            val rule = PluralRule.parse(locale, kind, entry)
             for ((form, text) in PluralRule.texts(entry)) {
                 for (list in text.substringAfter('@', "").split('@').filter { it.isNotBlank() }) {
                     for (sample in samples(list.substringAfter(' '))) {
-                        assertEquals(form, form(rule, PluralOperands.of(sample)!!), "$locale, $sample")
+                        assertEquals(form, form(rule, PluralOperands.of(sample)!!), "$kind $locale, $sample")
                         checked++
                     }
                 }
             }
         }
-        // Every locale has samples, so a parse that read none would show here
-        assert(checked > 10_000) { "only $checked samples checked" }
+        return checked
+    }
+
+    // Every locale has samples, so a parse that read none would show in the count
+    @Test
+    fun `every CLDR plural rule names the form of every sample CLDR gives for it`() {
+        assertEquals(12_259, checkSamples(PluralKind.CARDINAL))
+    }
+
+    @Test
+    fun `every CLDR ordinal rule names the form of every sample CLDR gives for it`() {
+        assertEquals(2_732, checkSamples(PluralKind.ORDINAL))
     }
 
     @Test
     fun `a language code finds the rule of its language when CLDR has none for the code`() {
-        assertEquals("pl", CldrPlurals.ruleFor("pl")?.locale)
-        assertEquals("pt", CldrPlurals.ruleFor("pt-BR")?.locale)
-        assertEquals("pt-PT", CldrPlurals.ruleFor("pt-PT")?.locale)
-        assertEquals("pt-PT", CldrPlurals.ruleFor("PT_pt")?.locale)
-        assertEquals("en", CldrPlurals.ruleFor("en-GB")?.locale)
-        assertEquals("kok-Latn", CldrPlurals.ruleFor("kok-Latn-IN")?.locale)
-        assertNull(CldrPlurals.ruleFor("polish"))
+        assertEquals("pl", cardinal("pl")?.locale)
+        assertEquals("pt", cardinal("pt-BR")?.locale)
+        assertEquals("pt-PT", cardinal("pt-PT")?.locale)
+        assertEquals("pt-PT", cardinal("PT_pt")?.locale)
+        assertEquals("en", cardinal("en-GB")?.locale)
+        assertEquals("kok-Latn", cardinal("kok-Latn-IN")?.locale)
+        assertNull(cardinal("polish"))
+    }
+
+    @Test
+    fun `ordinal rules are looked up the same way, and a locale CLDR has none for has no rule`() {
+        assertEquals("en", ordinal("en-GB")?.locale)
+        assertEquals("pt", ordinal("pt-PT")?.locale)
+        assertEquals(setOf("other"), ordinal("pl")?.forms)
+        assertNull(ordinal("eo"))
+        assertEquals("few", form(ordinal("en")!!, PluralOperands.of("23")!!))
+        assertEquals("other", form(ordinal("en")!!, PluralOperands.of("13")!!))
     }
 
     @Test
     fun `brazilian and european portuguese count zero differently`() {
         val zero = PluralOperands.of("0")!!
-        assertEquals("one", form(CldrPlurals.ruleFor("pt-BR")!!, zero))
-        assertEquals("other", form(CldrPlurals.ruleFor("pt-PT")!!, zero))
+        assertEquals("one", form(cardinal("pt-BR")!!, zero))
+        assertEquals("other", form(cardinal("pt-PT")!!, zero))
     }
 
     @Test
     fun `a rule becomes a when over the operands`() {
         assertEquals(
             """
-            /** The plural form of [count] by the CLDR ${CldrPlurals.version} rule for `lv`. */
+            /** The plural form of [count] by the CLDR ${PluralKind.CARDINAL.cldr.version} rule for `lv`. */
             private fun ___form(count: kotlin.Number): kotlin.String {
                 val o = io.github.octaviusframework.i18n.core.PluralOperands.of(count) ?: return "other"
                 return when {
@@ -95,7 +119,7 @@ class CldrPluralsTest {
             }
 
             """.trimIndent(),
-            CldrPlurals.ruleFor("lv")!!.functionSource(),
+            cardinal("lv")!!.functionSource(),
         )
     }
 }

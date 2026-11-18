@@ -135,6 +135,20 @@ class I18nTest {
     }
 
     @Test
+    fun `test an ordinal takes the form of its place`() {
+        OctaviusI18n.currentLanguage = "en"
+        val places = listOf(1, 2, 3, 4, 11, 12, 13, 21, 22, 23, 101, 111).map { Tr.Users.finished(place = it, name = "Anna") }
+        assertEquals(
+            listOf("1st", "2nd", "3rd", "4th", "11th", "12th", "13th", "21st", "22nd", "23rd", "101st", "111th").map { "Anna finished $it" },
+            places,
+        )
+
+        // Polish writes an ordinal as the number and a full stop, so its rule names only `other`
+        OctaviusI18n.currentLanguage = "pl"
+        assertEquals("Jan zajął 2. miejsce", Tr.Users.finished(2, "Jan"))
+    }
+
+    @Test
     fun `test a count is counted by the digits it prints`() {
         OctaviusI18n.currentLanguage = "en"
         assertEquals("1 user", Tr.Users.count(1))

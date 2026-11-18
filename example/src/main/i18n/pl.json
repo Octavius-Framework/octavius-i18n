@@ -40,7 +40,8 @@
         "many": "{name} zaprosił {count} znajomych",
         "other": "{name} zaprosił {count} znajomego"
       }
-    }
+    },
+    "finished": "{name} zajął {place}. miejsce"
   },
   "composition": {
     "bought": {

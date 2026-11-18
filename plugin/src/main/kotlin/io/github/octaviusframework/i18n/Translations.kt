@@ -15,13 +15,14 @@ internal class TranslationFile(val path: String, val lang: String, val root: Jso
 internal class TranslationKey(val path: String, val messages: Map<String, Message>, val signature: Signature)
 
 /**
- * Every key a generator's files hold, in every language, the CLDR plural [rules] of the languages CLDR has, and
- * the [problems] that keep them from being generated. The keys are complete only when there are no problems.
+ * Every key a generator's files hold, in every language, each language's CLDR [rules] of the kinds CLDR has for
+ * it, and the [problems] that keep them from being generated. The keys are complete only when there are no
+ * problems.
  */
 internal class Translations(
     val languages: List<String>,
     val keys: List<TranslationKey>,
-    val rules: Map<String, PluralRule>,
+    val rules: Map<String, Map<PluralKind, PluralRule>>,
     val problems: List<String>,
 )
 
@@ -33,7 +34,8 @@ internal class Translations(
  *   could not be read and so lack whatever it held,
  * - a translation that is not a message, such as a `$plural` without `other`,
  * - arguments the languages of a key disagree on, as [Signature.of] describes,
- * - a language that has a plural with forms but no plural rule in CLDR.
+ * - a language CLDR has no plural rule for, when one of its choices by a count has forms. A language CLDR has a
+ *   plural rule but no ordinal rule for counts every ordinal as `other`, as CLDR's root does.
  */
 internal fun readTranslations(files: List<TranslationFile>, unreadable: Set<String> = emptySet()): Translations {
     val problems = mutableListOf<String>()
@@ -85,14 +87,16 @@ internal fun readTranslations(files: List<TranslationFile>, unreadable: Set<Stri
         TranslationKey(key, byLanguage, Signature.of(key, byLanguage, problems))
     }
 
-    val rules = linkedMapOf<String, PluralRule>()
+    val rules = linkedMapOf<String, Map<PluralKind, PluralRule>>()
     for (lang in byLang.keys) {
-        val rule = CldrPlurals.ruleFor(lang)
-        if (rule != null) {
-            rules[lang] = rule
-        } else if (messages.values.any { it[lang]?.usesPluralRule(Plural.FORMS.toSet()) == true }) {
-            problems += "$lang has no plural rule in CLDR ${CldrPlurals.version}, and its plurals have forms to choose " +
-                "from; a file is named after a language code, such as pl or pt-BR"
+        if (PluralKind.CARDINAL.cldr.ruleFor(lang) != null) {
+            rules[lang] = PluralKind.entries.mapNotNull { kind -> kind.cldr.ruleFor(lang)?.let { kind to it } }.toMap()
+            continue
+        }
+        val everyForm = Plural.FORMS.toSet()
+        if (messages.values.any { byLanguage -> PluralKind.entries.any { byLanguage[lang]?.usesRule(it) { everyForm } == true } }) {
+            problems += "$lang has no plural rule in CLDR ${PluralKind.CARDINAL.cldr.version}, and its plurals have forms " +
+                "to choose from; a file is named after a language code, such as pl or pt-BR"
         }
     }
 

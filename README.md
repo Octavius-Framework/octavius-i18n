@@ -89,5 +89,5 @@ begin from an empty project. Every change is recorded in the [CHANGELOG](CHANGEL
 
 Licensed under the [Apache License, Version 2.0](LICENSE).
 
-The plugin carries the plural rules of [CLDR](https://cldr.unicode.org/) 49, copyright © Unicode, Inc., under the
+The plugin carries the plural and ordinal rules of [CLDR](https://cldr.unicode.org/) 49, copyright © Unicode, Inc., under the
 [Unicode License v3](plugin/src/main/resources/io/github/octaviusframework/i18n/cldr/LICENSE).

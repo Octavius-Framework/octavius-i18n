@@ -60,8 +60,8 @@ A file that does not parse as JSON, or whose top level is not an object, stops t
 
 ## From JSON to Kotlin
 
-A string becomes a function returning `String`. An object with a `$plural` or `$select` key is one translation
-too, which chooses its text — see [Plurals](plurals.md) and [Choices](choices.md). Every other object is a group
+A string becomes a function returning `String`. An object with a `$plural`, `$ordinal` or `$select` key is one
+translation too, which chooses its text — see [Plurals](plurals.md) and [Choices](choices.md). Every other object is a group
 of keys and becomes a Kotlin `object`; an empty one generates nothing.
 
 ```json

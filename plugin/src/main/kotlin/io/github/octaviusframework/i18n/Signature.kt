@@ -18,8 +18,8 @@ internal class Signature(val parameters: List<Parameter>) {
     companion object {
         /**
          * The signature of [key] from its [messages] by language, adding to [problems] every argument the
-         * languages disagree on: one that chooses a plural form in one place and a case in another, and one only
-         * inserted into the text that a language leaves out.
+         * languages disagree on: one that chooses one way in one place and another way elsewhere, such as a plural
+         * form here and a case there, and one only inserted into the text that a language leaves out.
          */
         fun of(key: String, messages: Map<String, Message>, problems: MutableList<String>): Signature {
             val usesByLang = messages.mapValues { (_, message) ->
@@ -28,14 +28,16 @@ internal class Signature(val parameters: List<Parameter>) {
             val arguments = usesByLang.values.flatMapTo(linkedSetOf()) { it.keys }
 
             val parameters = arguments.map { argument ->
-                fun languagesWith(use: Use) = usesByLang.filterValues { use in it[argument].orEmpty() }.keys
-                val plural = languagesWith(Use.PLURAL)
-                val select = languagesWith(Use.SELECT)
-                if (plural.isNotEmpty() && select.isNotEmpty()) {
-                    problems += "`$key` chooses by `$argument` as a `\$plural` in ${plural.joinToString(", ")} " +
-                        "and as a `\$select` in ${select.joinToString(", ")}"
+                // Each way the argument chooses, with the languages that choose by it that way
+                val choices = Use.entries.filter { it != Use.TEXT }
+                    .associateWith { use -> usesByLang.filterValues { use in it[argument].orEmpty() }.keys }
+                    .filterValues { it.isNotEmpty() }
+                if (choices.size > 1) {
+                    problems += "`$key` chooses by `$argument` as " + choices.entries.joinToString(" and as ") { (use, langs) ->
+                        "a `${use.discriminator}` in ${langs.joinToString(", ")}"
+                    }
                 }
-                if (plural.isEmpty() && select.isEmpty()) {
+                if (choices.isEmpty()) {
                     val without = usesByLang.filterValues { argument !in it }.keys
                     if (without.isNotEmpty()) {
                         val with = usesByLang.keys - without
@@ -43,8 +45,8 @@ internal class Signature(val parameters: List<Parameter>) {
                     }
                 }
                 val type = when {
-                    plural.isNotEmpty() -> "kotlin.Number"
-                    select.isNotEmpty() -> "kotlin.String"
+                    Use.SELECT in choices -> "kotlin.String"
+                    choices.isNotEmpty() -> "kotlin.Number"
                     else -> "kotlin.Any"
                 }
                 Parameter(argument, escapeName(argument), type)

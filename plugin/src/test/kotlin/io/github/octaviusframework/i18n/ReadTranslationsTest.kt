@@ -66,7 +66,7 @@ class ReadTranslationsTest {
         )
         assertEquals(
             listOf(
-                "polish has no plural rule in CLDR ${CldrPlurals.version}, and its plurals have forms to choose from; " +
+                "polish has no plural rule in CLDR ${PluralKind.CARDINAL.cldr.version}, and its plurals have forms to choose from; " +
                     "a file is named after a language code, such as pl or pt-BR",
             ),
             problems,
@@ -246,9 +246,9 @@ class ReadTranslationsTest {
             listOf(
                 "`a` in main/pl.json: `fewer` is not a form; a `${'$'}plural` takes zero, one, two, few, many, other and exact values such as `=0`",
                 "`b` in main/pl.json: `${'$'}plural` and `${'$'}select` are in one object; put one in the branches of the other",
-                "`c` in main/pl.json: `${'$'}choose` is not `${'$'}plural` or `${'$'}select`",
+                "`c` in main/pl.json: `${'$'}choose` is not `${'$'}plural`, `${'$'}ordinal` or `${'$'}select`",
                 "`d` in main/pl.json: `${'$'}select` names the argument it chooses by, such as \"count\" or \"gender\"",
-                "`e` in main/pl.json, under `female`: a branch is a string, or an object with `${'$'}plural` or `${'$'}select`",
+                "`e` in main/pl.json, under `female`: a branch is a string, or an object with `${'$'}plural`, `${'$'}ordinal` or `${'$'}select`",
             ),
             problems,
         )
@@ -261,5 +261,42 @@ class ReadTranslationsTest {
             file("main/pl.json", """{ "joined": { "${'$'}select": "who", "other": "dołączył" } }"""),
         )
         assertEquals(listOf("`joined` chooses by `who` as a `${'$'}plural` in en and as a `${'$'}select` in pl"), problems)
+    }
+
+    @Test
+    fun `an ordinal counts by a number`() {
+        val signature = signature(
+            "legion",
+            file("main/en.json", """{ "legion": { "${'$'}ordinal": "place", "one": "the {place}st legion", "other": "the {place}th legion" } }"""),
+            file("main/pl.json", """{ "legion": "{place}. legion" }"""),
+        )
+        assertEquals("place: kotlin.Number", signature)
+    }
+
+    @Test
+    fun `an argument that counts how many in one language and which in order in another is reported`() {
+        val problems = problems(
+            file("main/en.json", """{ "legion": { "${'$'}ordinal": "place", "other": "the {place}th legion" } }"""),
+            file("main/pl.json", """{ "legion": { "${'$'}plural": "place", "other": "{place} legionów" } }"""),
+        )
+        assertEquals(listOf("`legion` chooses by `place` as a `${'$'}plural` in pl and as a `${'$'}ordinal` in en"), problems)
+    }
+
+    @Test
+    fun `an ordinal and a plural in one object are reported`() {
+        val problems = problems(file("main/en.json", """{ "legion": { "${'$'}plural": "n", "${'$'}ordinal": "n", "other": "x" } }"""))
+        assertEquals(
+            listOf("`legion` in main/en.json: `${'$'}plural` and `${'$'}ordinal` are in one object; put one in the branches of the other"),
+            problems,
+        )
+    }
+
+    @Test
+    fun `a language CLDR has no ordinal rule for counts every ordinal as other`() {
+        val translations = readTranslations(
+            listOf(file("main/eo.json", """{ "legion": { "${'$'}ordinal": "place", "one": "unua", "other": "{place}-a legio" } }""")),
+        )
+        assertEquals(emptyList(), translations.problems)
+        assertEquals(setOf(PluralKind.CARDINAL), translations.rules.getValue("eo").keys)
     }
 }

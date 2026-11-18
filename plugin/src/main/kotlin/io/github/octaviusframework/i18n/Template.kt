@@ -9,9 +9,9 @@ internal class Template private constructor(val text: String) : Message {
         }
     }
 
-    override fun usesPluralRule(ruleForms: Set<String>): Boolean = false
+    override fun usesRule(kind: PluralKind, ruleForms: (PluralKind) -> Set<String>): Boolean = false
 
-    override fun toKotlin(parameters: Map<String, String>, ruleForms: Set<String>, indent: String): String {
+    override fun toKotlin(parameters: Map<String, String>, ruleForms: (PluralKind) -> Set<String>, indent: String): String {
         val literal = StringBuilder("\"")
         var end = 0
         for (match in PLACEHOLDER.findAll(text)) {

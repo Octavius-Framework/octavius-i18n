@@ -122,7 +122,7 @@ abstract class GenerateI18nTask : DefaultTask() {
         for (lang in translations.languages) {
             logger.lifecycle("Generating translations for language: $lang")
             val langFile = File(packageDir, "${actualObjectName}Translations${toPascalCase(lang)}.kt")
-            langFile.writeText(languageSource(actualTargetPackage, actualObjectName, lang, translations.keys, translations.rules[lang]), StandardCharsets.UTF_8)
+            langFile.writeText(languageSource(actualTargetPackage, actualObjectName, lang, translations.keys, translations.rules[lang].orEmpty()), StandardCharsets.UTF_8)
             logger.lifecycle("Generated: ${langFile.path}")
         }
 

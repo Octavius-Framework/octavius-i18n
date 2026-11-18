@@ -5,8 +5,9 @@ Agerius who sues and Numerius Negidius who is sued, and with the verdict written
 owes, condemn him; if it does not appear, absolve him. The judge put in the names and took the branch the facts
 chose. Wording the verdict was never left to him.*
 
-A key can choose its text by an argument: by a string with `$select`, by a count with `$plural`. Each branch is a
-whole sentence or another choice, and each language makes only the choices its grammar needs.
+A key can choose its text by an argument: by a string with `$select`, by a count with `$plural`, by a place in
+order with `$ordinal`. Each branch is a whole sentence or another choice, and each language makes only the choices
+its grammar needs.
 
 Contents:
 * [A choice by a string](#a-choice-by-a-string)
@@ -37,7 +38,8 @@ Tr.Legion.arrived("Female", "Livia")    // "Livia przybył do Rzymu"
 ```
 
 A choice by a count is the same object with `$plural`, whose branches are plural forms — see
-[Plurals](plurals.md#a-plural-key).
+[Plurals](plurals.md#a-plural-key). One by a place in order is a `$ordinal` — see
+[Plurals](plurals.md#ordinals).
 
 ## A choice inside a choice
 
@@ -93,12 +95,12 @@ language — see [One key, every language](translation-files.md#one-key-every-la
 
 ## What a choice needs
 
-- **One `$plural` or one `$select`**, naming the argument it chooses by, such as `"gender"`.
+- **One `$plural`, `$ordinal` or `$select`**, naming the argument it chooses by, such as `"gender"`.
 - **An `other` branch.**
-- **Branches that are strings or choices.** A `$select` branch can have any name; `$plural` ones are listed in
-  [Plurals](plurals.md#a-plural-key).
+- **Branches that are strings or choices.** A `$select` branch can have any name; those of `$plural` and
+  `$ordinal` are listed in [Plurals](plurals.md#a-plural-key).
 - **One way to choose by an argument.** An argument that one language counts with `$plural` cannot be a
-  `$select` in another.
+  `$ordinal` or a `$select` in another.
 
 Each of these stops the build, naming the key, the file and the branches leading to the problem:
 

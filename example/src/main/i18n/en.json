@@ -20,6 +20,13 @@
       "=0": "{name} invited nobody",
       "one": "{name} invited {count} friend",
       "other": "{name} invited {count} friends"
+    },
+    "finished": {
+      "$ordinal": "place",
+      "one": "{name} finished {place}st",
+      "two": "{name} finished {place}nd",
+      "few": "{name} finished {place}rd",
+      "other": "{name} finished {place}th"
     }
   },
   "composition": {

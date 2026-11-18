@@ -13,20 +13,32 @@ internal sealed interface Message {
     fun collectUses(uses: MutableMap<String, MutableSet<Use>>)
 
     /**
-     * Whether rendering this message asks the language's plural rule for a form, when the rule names [ruleForms]. A
-     * plural whose only forms the rule could name is `other` does not ask.
+     * Whether rendering this message asks the language's rule of [kind] for a form, when [ruleForms] gives the
+     * forms the language's rule of each kind names. A choice whose only forms the rule could name is `other` does
+     * not ask.
      */
-    fun usesPluralRule(ruleForms: Set<String>): Boolean
+    fun usesRule(kind: PluralKind, ruleForms: (PluralKind) -> Set<String>): Boolean
 
     /**
      * A Kotlin expression rendering this message, with [parameters] naming each argument's parameter, in a
-     * language whose plural rule names [ruleForms]. Lines after the first start with [indent].
+     * language whose rule of each kind names the forms [ruleForms] gives. Lines after the first start with [indent].
      */
-    fun toKotlin(parameters: Map<String, String>, ruleForms: Set<String>, indent: String): String
+    fun toKotlin(parameters: Map<String, String>, ruleForms: (PluralKind) -> Set<String>, indent: String): String
 }
 
-/** What a message does with an argument: inserts it into the text, or chooses by it. */
-internal enum class Use { TEXT, PLURAL, SELECT }
+/** What a message does with an argument: inserts it into the text, or chooses by it under [discriminator]. */
+internal enum class Use(val discriminator: String?) {
+    TEXT(null),
+    PLURAL("\$plural"),
+    ORDINAL("\$ordinal"),
+    SELECT("\$select"),
+}
+
+/** The discriminators of a choice. */
+private val DISCRIMINATORS = Use.entries.mapNotNull { it.discriminator }
+
+/** The discriminators listed for a problem: `$plural`, `$ordinal` or `$select`. */
+private val LISTED = DISCRIMINATORS.dropLast(1).joinToString(", ") { "`$it`" } + " or `" + DISCRIMINATORS.last() + "`"
 
 /** Where a message sits, for problems to name: its key, its file, and the branches leading to it. */
 internal class Location(private val key: String, private val file: String, private val branches: List<String> = emptyList()) {
@@ -54,24 +66,26 @@ internal fun readMessage(element: JsonElement, at: Location, problems: MutableLi
         element !is JsonObject -> Template.read((element as? JsonPrimitive)?.content ?: element.toString(), at, problems)
         isMessageObject(element) -> readChoice(element, at, problems)
         else -> {
-            problems += at.problem("a branch is a string, or an object with `\$plural` or `\$select`")
+            problems += at.problem("a branch is a string, or an object with $LISTED")
             null
         }
     }
 }
 
 private fun readChoice(obj: JsonObject, at: Location, problems: MutableList<String>): Message? {
-    val unknown = obj.keys.filter { it.startsWith('$') && it != "\$plural" && it != "\$select" }
+    val unknown = obj.keys.filter { it.startsWith('$') && it !in DISCRIMINATORS }
     if (unknown.isNotEmpty()) {
-        problems += at.problem(unknown.joinToString(", ") { "`$it`" } + " is not `\$plural` or `\$select`")
+        problems += at.problem(unknown.joinToString(", ") { "`$it`" } + " is not $LISTED")
     }
-    if ("\$plural" in obj && "\$select" in obj) {
-        problems += at.problem("`\$plural` and `\$select` are in one object; put one in the branches of the other")
+    val present = DISCRIMINATORS.filter { it in obj }
+    if (present.size > 1) {
+        problems += at.problem(present.joinToString(" and ") { "`$it`" } + " are in one object; put one in the branches of the other")
         return null
     }
-    return when {
-        "\$plural" in obj -> Plural.read(obj, at, problems)
-        "\$select" in obj -> Select.read(obj, at, problems)
+    return when (present.singleOrNull()) {
+        PluralKind.CARDINAL.discriminator -> Plural.read(obj, PluralKind.CARDINAL, at, problems)
+        PluralKind.ORDINAL.discriminator -> Plural.read(obj, PluralKind.ORDINAL, at, problems)
+        Use.SELECT.discriminator -> Select.read(obj, at, problems)
         else -> null
     }
 }

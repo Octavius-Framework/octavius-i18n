@@ -15,6 +15,12 @@
   CLDR has none for the code itself, as `pt-BR` takes `pt`. A language CLDR has no rule for stops the build once
   one of its plurals has a form besides `other`. See [Plurals](docs/plurals.md#the-rules-come-from-cldr).
 
+- `"$ordinal": "number"` chooses by a place in order, as English writes `1st`, `2nd`, `3rd` and `4th`. It is
+  written as a `$plural` is, and its forms come from the language's CLDR 49 ordinal rule. A language whose rule
+  names only `other`, as Polish's does, or that CLDR has no ordinal rule for, counts every place as `other`. One
+  argument cannot be a `$plural` in one language and a `$ordinal` in another. See
+  [Plurals](docs/plurals.md#ordinals).
+
 - A language may leave out an argument that only chooses its text, as English needs no `gender` where Polish
   chooses by it, and may hold a key as a plain string where another holds a plural, such as
   `"{count} コホート"`.
@@ -80,8 +86,8 @@
 - The runtime has tests of its own, in `commonTest` and for JVM and JS, run on every target the build machine can
   run.
 
-- The plugin's tests check every CLDR plural rule against the samples CLDR gives for it, 12 259 of them in 225
-  languages.
+- The plugin's tests check every CLDR rule against the samples CLDR gives for it: 12 259 for the plural rules of
+  225 languages and 2 732 for the ordinal rules of 109.
 
 ## Version 1.2.0 (v1.2.0)
 
