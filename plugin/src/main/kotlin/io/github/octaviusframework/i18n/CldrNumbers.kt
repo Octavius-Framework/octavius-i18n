@@ -7,7 +7,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 /**
- * CLDR's number formats, from `cldr/numbers.json`, which the `cldrNumberFormats` task of the plugin's build
+ * CLDR's number formats, from `cldr/numbers.json`, which the `updateCldr` task of the plugin's build
  * extracts from CLDR.
  */
 internal object CldrNumbers {

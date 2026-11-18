@@ -6,6 +6,12 @@ import kotlin.test.assertEquals
 class CldrNumbersTest {
 
     @Test
+    fun `the plural rules, the ordinal rules and the number formats are of one CLDR release`() {
+        assertEquals(PluralKind.CARDINAL.cldr.version, PluralKind.ORDINAL.cldr.version)
+        assertEquals(PluralKind.CARDINAL.cldr.version, CldrNumbers.version)
+    }
+
+    @Test
     fun `a language code finds the format of its language when CLDR has none for the code`() {
         assertEquals(CldrNumbers.formatFor("pt"), CldrNumbers.formatFor("pt-BR"))
         assertEquals(2, CldrNumbers.formatFor("PT_pt").minimumGrouping)

@@ -8,6 +8,11 @@ pluginManagement {
     }
 }
 
+// Where Gradle downloads the JDK 21 the modules' toolchains ask for, when the machine has none
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+}
+
 dependencyResolutionManagement {
     repositories {
         mavenCentral()

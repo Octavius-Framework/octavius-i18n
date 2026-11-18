@@ -27,22 +27,35 @@ tasks.test {
     useJUnitPlatform()
 }
 
-// Rewrites cldr/numbers.json, the number format of every CLDR locale, from CLDR's own files:
-//   ./gradlew :i18n-plugin:cldrNumberFormats -PcldrNumbers=<dir> -PnumberingSystems=<file>
-// with absolute paths: <dir> is the unpacked cldr-numbers-full package from npm, and <file> is
-// cldr-json/cldr-core/supplemental/numberingSystems.json of unicode-org/cldr-json, both of one CLDR release.
-tasks.register("cldrNumberFormats") {
-    description = "Extracts every CLDR locale's number format into src/main/resources/.../cldr/numbers.json."
+// Rewrites the plugin's CLDR data, src/main/resources/io/github/octaviusframework/i18n/cldr/, from one CLDR release:
+//   ./gradlew :i18n-plugin:updateCldr -PcldrCore=<dir> -PcldrNumbers=<dir>
+// with absolute paths to the unpacked cldr-core and cldr-numbers-full packages from npm, of the same version.
+// plurals.json, ordinals.json and LICENSE are copied as they are; numbers.json holds each locale's number format,
+// taken from cldr-numbers-full and the digits of cldr-core's numberingSystems.json.
+tasks.register("updateCldr") {
+    description = "Rewrites the plugin's CLDR plural rules, ordinal rules and number formats from one CLDR release."
+    val core = providers.gradleProperty("cldrCore")
     val numbers = providers.gradleProperty("cldrNumbers")
-    val systems = providers.gradleProperty("numberingSystems")
-    val output = layout.projectDirectory.file("src/main/resources/io/github/octaviusframework/i18n/cldr/numbers.json").asFile
+    val output = layout.projectDirectory.dir("src/main/resources/io/github/octaviusframework/i18n/cldr").asFile
     doLast {
         @Suppress("UNCHECKED_CAST")
         fun obj(value: Any?) = value as Map<String, Any?>
         val slurper = groovy.json.JsonSlurper()
+        val coreDir = File(core.get())
         val numbersDir = File(numbers.get())
-        val numberingSystems = obj(obj(obj(slurper.parse(File(systems.get())))["supplemental"])["numberingSystems"])
 
+        fun cldrVersion(file: File) =
+            obj(obj(obj(slurper.parse(file))["supplemental"])["version"])["_cldrVersion"] as String
+        val coreVersion = cldrVersion(coreDir.resolve("supplemental/plurals.json"))
+        val numbersVersion = (obj(slurper.parse(numbersDir.resolve("package.json")))["version"] as String).substringBefore('.')
+        check(coreVersion == numbersVersion) { "cldr-core is CLDR $coreVersion and cldr-numbers-full CLDR $numbersVersion" }
+
+        for (name in listOf("plurals.json", "ordinals.json")) {
+            coreDir.resolve("supplemental/$name").copyTo(output.resolve(name), overwrite = true)
+        }
+        coreDir.resolve("LICENSE").takeIf { it.isFile }?.copyTo(output.resolve("LICENSE"), overwrite = true)
+
+        val numberingSystems = obj(obj(obj(slurper.parse(coreDir.resolve("supplemental/numberingSystems.json")))["supplemental"])["numberingSystems"])
         val formats = mutableListOf<Map<String, Any>>()
         val locales = sortedMapOf<String, Int>()
         val digits = sortedMapOf<String, List<String>>()
@@ -72,10 +85,9 @@ tasks.register("cldrNumberFormats") {
             locales[dir.name.lowercase()] = index
         }
 
-        val version = obj(slurper.parse(numbersDir.resolve("package.json")))["version"] as String
-        val data = linkedMapOf("cldrVersion" to version.substringBefore('.'), "digits" to digits, "formats" to formats, "locales" to locales)
-        output.writeText(groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(data)) + "\n")
-        logger.lifecycle("${formats.size} formats of ${locales.size} locales, CLDR $version")
+        val data = linkedMapOf("cldrVersion" to numbersVersion, "digits" to digits, "formats" to formats, "locales" to locales)
+        output.resolve("numbers.json").writeText(groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(data)) + "\n")
+        logger.lifecycle("CLDR $coreVersion: plural and ordinal rules, and ${formats.size} number formats of ${locales.size} locales")
     }
 }
 

@@ -119,8 +119,13 @@
 - The plugin's tests check every CLDR rule against the samples CLDR gives for it: 12 259 for the plural rules of
   225 languages and 2 732 for the ordinal rules of 109.
 
-- The plugin's build has a `cldrNumberFormats` task, which extracts every CLDR locale's number format from an
-  unpacked `cldr-numbers-full` package into the plugin's `cldr/numbers.json`.
+- The plugin's build has an `updateCldr` task, which rewrites all of the plugin's CLDR data from one release: it
+  copies the plural and ordinal rules and the license from an unpacked `cldr-core` package, and extracts every
+  locale's number format from `cldr-numbers-full`. It refuses packages of two releases, and a test checks that the
+  plugin's three data files are of one.
+
+- The build finds a JDK 21 for its toolchains through the Foojay resolver, which Gradle 10 requires for a JDK it
+  has to download, and it no longer warns about the runtime's test tasks a machine cannot run.
 
 ## Version 1.2.0 (v1.2.0)
 
