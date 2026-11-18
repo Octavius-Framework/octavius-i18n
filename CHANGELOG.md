@@ -130,6 +130,13 @@
 - **[BREAKING]** `OctaviusI18n.pluralRules`, `PluralRule` and `OctaviusI18n.selectPluralForm`. The plural rules
   are CLDR's, compiled into the generated code, and a rule can no longer be registered or replaced at runtime.
 
+#### Fixed
+
+- `OctaviusI18n.currentLanguage` is volatile on the JVM and Kotlin/Native, so a language switched on one thread is
+  seen by every other from its next call. A thread that only read it, such as a coroutine on `Dispatchers.IO`, had
+  no guarantee of ever seeing the switch. See
+  [Choosing the Language](docs/choosing-the-language.md#the-current-language).
+
 ### Project
 
 #### Added

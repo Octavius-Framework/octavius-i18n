@@ -19,7 +19,8 @@ Tr.Legion.Orders.march()   // "Marsz!"
 object: every `Tr` in every module reads the same one, and switching it switches them all. A text in another
 language is asked for by name — see [Another language](#another-language).
 
-It is not synchronized. Switch the language from one thread, the UI thread for example.
+A switch is seen by every thread from its next call on, whichever thread makes it. Each call reads the language
+once, so one text is in one language, but texts asked for while the language switches may be in either.
 
 ## Another language
 
