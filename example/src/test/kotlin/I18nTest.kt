@@ -3,7 +3,6 @@ package org.example.i18n
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import io.github.octaviusframework.i18n.core.OctaviusI18n
-import io.github.octaviusframework.i18n.core.PluralRule
 import org.example.feature.i18n.FeatureTr
 
 /**
@@ -136,16 +135,13 @@ class I18nTest {
     }
 
     @Test
-    fun `test a language with no file is counted by the rule of the language it falls back to`() {
-        OctaviusI18n.pluralRules["de"] = object : PluralRule {
-            override fun selectForm(count: Int) = "one"
-            override fun selectForm(count: Double) = "one"
-        }
-        try {
-            OctaviusI18n.currentLanguage = "de"
-            assertEquals("5 users", Tr.Users.count(5))
-        } finally {
-            OctaviusI18n.pluralRules.remove("de")
-        }
+    fun `test a count is counted by the digits it prints`() {
+        OctaviusI18n.currentLanguage = "en"
+        assertEquals("1 user", Tr.Users.count(1))
+        assertEquals("1.0 users", Tr.Users.count(1.0))
+        assertEquals("1.50 users", Tr.Users.count(java.math.BigDecimal("1.50")))
+        OctaviusI18n.currentLanguage = "pl"
+        assertEquals("1 użytkownik", Tr.Users.count(1))
+        assertEquals("1.0 użytkowników", Tr.Users.count(1.0))
     }
 }

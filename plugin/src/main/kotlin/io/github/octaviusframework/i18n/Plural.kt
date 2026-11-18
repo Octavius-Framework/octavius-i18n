@@ -4,7 +4,7 @@ import kotlinx.serialization.json.JsonObject
 
 /**
  * Chooses a message by a count: an exact value first (`=0`), then the form the language's plural rule names,
- * then `other`. [forms] always holds `other`.
+ * then `other`. [forms] always holds `other`. A form the language's rule never names is left out of the code.
  */
 internal class Plural(
     private val argument: String,
@@ -18,35 +18,39 @@ internal class Plural(
         forms.values.forEach { it.collectUses(uses) }
     }
 
-    override fun usesPluralRule(): Boolean =
-        forms.size > 1 || exact.any { it.second.usesPluralRule() } || forms.values.any { it.usesPluralRule() }
+    /** The forms this plural has, besides `other`, that a rule naming [ruleForms] can choose, in CLDR order. */
+    private fun reachable(ruleForms: Set<String>): List<String> = FORMS.filter { it != "other" && it in forms && it in ruleForms }
 
-    override fun toKotlin(parameters: Map<String, String>, indent: String): String {
+    override fun usesPluralRule(ruleForms: Set<String>): Boolean =
+        reachable(ruleForms).isNotEmpty() ||
+            exact.any { it.second.usesPluralRule(ruleForms) } ||
+            forms.values.any { it.usesPluralRule(ruleForms) }
+
+    override fun toKotlin(parameters: Map<String, String>, ruleForms: Set<String>, indent: String): String {
         val count = parameters.getValue(argument)
         val inner = "$indent    "
-        if (exact.isEmpty()) return byForm(count, parameters, indent)
+        if (exact.isEmpty()) return byForm(count, parameters, ruleForms, indent)
         return buildString {
             appendLine("when {")
             for ((value, message) in exact) {
-                appendLine("$inner$count.toDouble() == $value -> ${message.toKotlin(parameters, inner)}")
+                appendLine("$inner$count.toDouble() == $value -> ${message.toKotlin(parameters, ruleForms, inner)}")
             }
-            appendLine("${inner}else -> ${byForm(count, parameters, inner)}")
+            appendLine("${inner}else -> ${byForm(count, parameters, ruleForms, inner)}")
             append("$indent}")
         }
     }
 
-    private fun byForm(count: String, parameters: Map<String, String>, indent: String): String {
+    private fun byForm(count: String, parameters: Map<String, String>, ruleForms: Set<String>, indent: String): String {
         val other = forms.getValue("other")
-        if (forms.size == 1) return other.toKotlin(parameters, indent)
+        val reachable = reachable(ruleForms)
+        if (reachable.isEmpty()) return other.toKotlin(parameters, ruleForms, indent)
         val inner = "$indent    "
         return buildString {
             appendLine("when ($FORM_FUNCTION($count)) {")
-            for (form in FORMS) {
-                if (form == "other") continue
-                val message = forms[form] ?: continue
-                appendLine("$inner\"$form\" -> ${message.toKotlin(parameters, inner)}")
+            for (form in reachable) {
+                appendLine("$inner\"$form\" -> ${forms.getValue(form).toKotlin(parameters, ruleForms, inner)}")
             }
-            appendLine("${inner}else -> ${other.toKotlin(parameters, inner)}")
+            appendLine("${inner}else -> ${other.toKotlin(parameters, ruleForms, inner)}")
             append("$indent}")
         }
     }

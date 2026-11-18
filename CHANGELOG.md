@@ -9,6 +9,12 @@
   `=0`, then for the count's form, then `other`. A branch is a string or another choice, so one key can choose by
   a gender and a count at once. A choice without `other` stops the build. See [Choices](docs/choices.md).
 
+- Every language is counted by its plural rule from CLDR 49, which the plugin carries and compiles into the
+  language's generated file. Only English and Polish had a rule built in, and every other language was counted by
+  the English one until a rule was registered for it. A file's language code takes the rule of its language when
+  CLDR has none for the code itself, as `pt-BR` takes `pt`. A language CLDR has no rule for stops the build once
+  one of its plurals has a form besides `other`. See [Plurals](docs/plurals.md#the-rules-come-from-cldr).
+
 - A language may leave out an argument that only chooses its text, as English needs no `gender` where Polish
   chooses by it, and may hold a key as a plain string where another holds a plural, such as
   `"{count} コホート"`.
@@ -31,9 +37,9 @@
   `internal` and implement a generated `internal` interface instead of `TranslationData`.
 
 - **[BREAKING]** A plural key's accessor takes one `count: Number` instead of an `Int` and a `Double` overload.
-  `cohort(5)` and `cohort(1.5)` compile as before; `Long`, `Short` and `Byte` count as whole numbers and `Float`
-  as a fraction. On Kotlin/JS a `Double` with no fractional part counts as a whole number, matching the `1`
-  Kotlin/JS prints for it, where it counted as a fraction.
+  `cohort(5)` and `cohort(1.5)` compile as before. A count is counted by the digits it prints, which are the
+  digits CLDR's rules read: `1.0` has a fraction digit, a `BigDecimal` keeps the digits it was written with, and
+  on Kotlin/JS, which prints `1.0` as `1`, it counts as the whole number 1, where it counted as a fraction.
 
 - The build compares what each language does with a key's arguments, not whether it has the same placeholders. It
   stops on an argument inserted into the text in one language but missing from another, and on an argument that
@@ -56,14 +62,16 @@
 
 #### Added
 
-- `OctaviusI18n.selectPluralForm(lang, Number)`, which the generated plurals call. A `Long` too large for an `Int`
-  reaches the rule as 1 000 000 000 plus its last nine digits, so a rule that looks at the last digits counts it
-  right.
+- `PluralOperands`, the operands of a count that CLDR's plural rules read, taken from the count as it prints. The
+  generated rules call it.
 
 #### Removed
 
 - **[BREAKING]** `TranslationData`, `PluralForms`, `OctaviusI18n.lookup`, `lookupPlural` and `formatString`. The
   generated code no longer calls them.
+
+- **[BREAKING]** `OctaviusI18n.pluralRules`, `PluralRule` and `OctaviusI18n.selectPluralForm`. The plural rules
+  are CLDR's, compiled into the generated code, and a rule can no longer be registered or replaced at runtime.
 
 ### Project
 
@@ -71,6 +79,9 @@
 
 - The runtime has tests of its own, in `commonTest` and for JVM and JS, run on every target the build machine can
   run.
+
+- The plugin's tests check every CLDR plural rule against the samples CLDR gives for it, 12 259 of them in 225
+  languages.
 
 ## Version 1.2.0 (v1.2.0)
 

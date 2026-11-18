@@ -19,6 +19,8 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     compileOnly(kotlin("gradle-plugin", libs.versions.kotlin.get()))
     testImplementation(kotlin("test"))
+    // The runtime's operands, to check the CLDR rules against CLDR's own samples
+    testImplementation(project(":i18n-core"))
 }
 
 tasks.test {

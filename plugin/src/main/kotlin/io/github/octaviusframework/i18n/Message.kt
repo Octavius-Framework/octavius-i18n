@@ -12,14 +12,17 @@ internal sealed interface Message {
     /** Adds to [uses] what this message does with each argument. */
     fun collectUses(uses: MutableMap<String, MutableSet<Use>>)
 
-    /** Whether rendering this message asks the language's plural rule for a form. */
-    fun usesPluralRule(): Boolean
+    /**
+     * Whether rendering this message asks the language's plural rule for a form, when the rule names [ruleForms]. A
+     * plural whose only forms the rule could name is `other` does not ask.
+     */
+    fun usesPluralRule(ruleForms: Set<String>): Boolean
 
     /**
-     * A Kotlin expression rendering this message, with [parameters] naming each argument's parameter.
-     * Lines after the first start with [indent].
+     * A Kotlin expression rendering this message, with [parameters] naming each argument's parameter, in a
+     * language whose plural rule names [ruleForms]. Lines after the first start with [indent].
      */
-    fun toKotlin(parameters: Map<String, String>, indent: String): String
+    fun toKotlin(parameters: Map<String, String>, ruleForms: Set<String>, indent: String): String
 }
 
 /** What a message does with an argument: inserts it into the text, or chooses by it. */

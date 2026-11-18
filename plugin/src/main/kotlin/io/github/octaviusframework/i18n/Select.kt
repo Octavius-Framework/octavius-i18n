@@ -10,19 +10,19 @@ internal class Select(private val argument: String, private val cases: Map<Strin
         cases.values.forEach { it.collectUses(uses) }
     }
 
-    override fun usesPluralRule(): Boolean = cases.values.any { it.usesPluralRule() }
+    override fun usesPluralRule(ruleForms: Set<String>): Boolean = cases.values.any { it.usesPluralRule(ruleForms) }
 
-    override fun toKotlin(parameters: Map<String, String>, indent: String): String {
+    override fun toKotlin(parameters: Map<String, String>, ruleForms: Set<String>, indent: String): String {
         val other = cases.getValue("other")
-        if (cases.size == 1) return other.toKotlin(parameters, indent)
+        if (cases.size == 1) return other.toKotlin(parameters, ruleForms, indent)
         val inner = "$indent    "
         return buildString {
             appendLine("when (${parameters.getValue(argument)}) {")
             for ((case, message) in cases) {
                 if (case == "other") continue
-                appendLine("$inner\"${escapeString(case)}\" -> ${message.toKotlin(parameters, inner)}")
+                appendLine("$inner\"${escapeString(case)}\" -> ${message.toKotlin(parameters, ruleForms, inner)}")
             }
-            appendLine("${inner}else -> ${other.toKotlin(parameters, inner)}")
+            appendLine("${inner}else -> ${other.toKotlin(parameters, ruleForms, inner)}")
             append("$indent}")
         }
     }

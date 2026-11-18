@@ -60,6 +60,29 @@ class ReadTranslationsTest {
     }
 
     @Test
+    fun `a language CLDR has no rule for is reported when its plurals have forms to choose from`() {
+        val problems = problems(
+            file("main/polish.json", """{ "cohort": { "${'$'}plural": "count", "one": "{count} kohorta", "other": "{count} kohorty" } }"""),
+        )
+        assertEquals(
+            listOf(
+                "polish has no plural rule in CLDR ${CldrPlurals.version}, and its plurals have forms to choose from; " +
+                    "a file is named after a language code, such as pl or pt-BR",
+            ),
+            problems,
+        )
+    }
+
+    @Test
+    fun `a language CLDR has no rule for needs none when its plurals have only exact values and other`() {
+        val translations = readTranslations(
+            listOf(file("main/polish.json", """{ "cohort": { "${'$'}plural": "count", "=0": "brak kohort", "other": "{count} kohort" } }""")),
+        )
+        assertEquals(emptyList(), translations.problems)
+        assertEquals(emptyMap(), translations.rules)
+    }
+
+    @Test
     fun `a key defined in two files of one language names both files`() {
         val problems = problems(
             file("main/pl.json", """{ "Legion": { "march": "Marsz!" } }"""),

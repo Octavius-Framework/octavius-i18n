@@ -19,8 +19,7 @@ Tr.Legion.Orders.march()   // "Marsz!"
 object: every `Tr` in every module reads the same one, and switching it switches them all. An application that
 has to render two languages at the same time — a server answering users in each — cannot keep them apart with it.
 
-Neither it nor `pluralRules` is synchronized. Switch the language from one thread, the UI thread for example, and
-register plural rules at startup.
+It is not synchronized. Switch the language from one thread, the UI thread for example.
 
 ## A language with no file
 
@@ -40,5 +39,5 @@ or the build would have stopped. See [Translation Files](translation-files.md#on
 
 ## Plural rules
 
-`OctaviusI18n.pluralRules` holds the rule for each language, with English and Polish built in. Adding one, and
-what a language without one is counted by, are in [Plurals](plurals.md#a-rule-of-your-own).
+Each language's plural rule is CLDR's, compiled into its generated file. Which rule a file's language code takes is
+in [Plurals](plurals.md#which-rule-a-language-takes).

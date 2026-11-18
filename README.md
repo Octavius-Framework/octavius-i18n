@@ -19,7 +19,7 @@ same generated code runs on every target the runtime is built for.
 | Artifact                         | What it is                                                                                                                                                                         |
 |:---------------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **`i18n-plugin`** — *the scribe* | The Gradle plugin `io.github.octavius-framework.i18n`. Reads every `i18n/<lang>.json` of a project and its subprojects, generates the accessor object, and adds it to compilation. |
-| **`i18n-core`** — *the tablet*   | The runtime the generated code calls: the current language and the plural rules. Kotlin Multiplatform: JVM, JS, Wasm (JS and WASI), Linux, Windows, macOS, iOS.                    |
+| **`i18n-core`** — *the tablet*   | The runtime the generated code calls: the current language, and the operands the plural rules read. Kotlin Multiplatform: JVM, JS, Wasm (JS and WASI), Linux, Windows, macOS, iOS. |
 
 The scribe copies the text out once, at build time; the tablet is what gets read afterwards, in whichever
 language is current.
@@ -88,3 +88,6 @@ begin from an empty project. Every change is recorded in the [CHANGELOG](CHANGEL
 ## License
 
 Licensed under the [Apache License, Version 2.0](LICENSE).
+
+The plugin carries the plural rules of [CLDR](https://cldr.unicode.org/) 49, copyright © Unicode, Inc., under the
+[Unicode License v3](plugin/src/main/resources/io/github/octaviusframework/i18n/cldr/LICENSE).

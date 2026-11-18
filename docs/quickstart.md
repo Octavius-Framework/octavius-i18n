@@ -148,6 +148,6 @@ Multiplatform one. A project with neither Kotlin plugin still gets the task, but
 ## Next Steps
 
 - [Translation Files](translation-files.md) — which files a generator reads, naming, placeholders, modules
-- [Plurals](plurals.md) — how a form is chosen, and a rule for a language that has none built in
+- [Plurals](plurals.md) — how a form is chosen, and the CLDR rule each language takes
 - [Choices](choices.md) — a text chosen by gender or any other string, and choices inside choices
 - [Choosing the Language](choosing-the-language.md) — one language for the whole program, and the fallback
