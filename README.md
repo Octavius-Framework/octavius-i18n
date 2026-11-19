@@ -19,7 +19,7 @@ same generated code runs on every target the runtime is built for.
 | Artifact                         | What it is                                                                                                                                                                         |
 |:---------------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **`i18n-plugin`** — *the scribe* | The Gradle plugin `io.github.octavius-framework.i18n`. Reads every `i18n/<lang>.json` of a project and its subprojects, generates the accessor object, and adds it to compilation. |
-| **`i18n-core`** — *the tablet*   | The runtime the generated code calls: the current language, the plural rules, placeholders. Kotlin Multiplatform: JVM, JS, Wasm (JS and WASI), Linux, Windows, macOS, iOS.         |
+| **`i18n-core`** — *the tablet*   | The runtime the generated code calls: the current language, number formatting, plural operands. Kotlin Multiplatform: JVM, JS, Wasm (JS and WASI), Linux, Windows, macOS, iOS.     |
 
 The scribe copies the text out once, at build time; the tablet is what gets read afterwards, in whichever
 language is current.
@@ -53,10 +53,11 @@ Multiplatform project the runtime goes into `commonMain` instead — see the [Qu
     },
     "Units": {
       "cohort": {
-        "_one":   "{0} kohorta",
-        "_few":   "{0} kohorty",
-        "_many":  "{0} kohort",
-        "_other": "{0} kohorty"
+        "$plural": "count",
+        "one":   "{count} kohorta",
+        "few":   "{count} kohorty",
+        "many":  "{count} kohort",
+        "other": "{count} kohorty"
       }
     }
   }
@@ -87,3 +88,7 @@ begin from an empty project. Every change is recorded in the [CHANGELOG](CHANGEL
 ## License
 
 Licensed under the [Apache License, Version 2.0](LICENSE).
+
+The plugin carries the plural and ordinal rules and the number formats of [CLDR](https://cldr.unicode.org/) 49,
+copyright © Unicode, Inc., under the
+[Unicode License v3](plugin/src/main/resources/io/github/octaviusframework/i18n/cldr/LICENSE).

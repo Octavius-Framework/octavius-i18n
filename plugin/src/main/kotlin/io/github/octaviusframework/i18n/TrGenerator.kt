@@ -1,8 +1,8 @@
 package io.github.octaviusframework.i18n
 
-
 /**
- * Generates the main Tr.kt file with registry and type-safe accessors.
+ * Generates `{objectName}.kt`: the accessor object for the current language, the accessor class it is an instance
+ * of, which mirrors the keys, and the interface each language's translations implement.
  */
 internal class TrGenerator(private val packageName: String, private val objectName: String) {
     private val builder = StringBuilder()
@@ -18,132 +18,206 @@ internal class TrGenerator(private val packageName: String, private val objectNa
         }
     }
 
-    /**
-     * Renders the full `{objectName}.kt` source file: a registry mapping each language to its
-     * generated [io.github.octaviusframework.i18n.core.TranslationData], plus a type-safe accessor
-     * object mirroring the shape of [entries].
-     */
-    fun generate(entries: Map<String, TranslationEntry>, defaultLang: String, allLangs: List<String>): String {
-        builder.clear()
+    /** A level of the accessor class: a function per key, and an inner class per group of keys, each by its name. */
+    private class Group {
+        val keys = sortedMapOf<String, TranslationKey>()
+        val groups = sortedMapOf<String, Group>()
+    }
 
-        appendLine("@file:Suppress(\"unused\", \"RedundantVisibilityModifier\")")
+    /**
+     * Renders the full `{objectName}.kt` source file for [translations], falling back to the language
+     * [defaultLang] finds, or to the first one when it finds none, for a language that has no translations. The
+     * accessors' documentation shows that language's templates.
+     */
+    fun generate(translations: Translations, defaultLang: String): String {
+        builder.clear()
+        val byCode = translations.languages.associateBy { languageCode(it) }
+        val fallback = findByLanguageCode(defaultLang) { byCode[it] } ?: translations.languages.first()
+        val interfaceName = "${objectName}Translations"
+        val accessorsName = "${objectName}Accessors"
+
+        // The IDE's style inspections, on what the generator writes on purpose: `public` for explicit API mode, full
+        // names no type of the target package can shadow, `___` names no key can take, functions and properties
+        // named after keys, and `{Group}_Group` classes. A private top-level property is checked as an object's
+        // property is, so `___found` falls to ObjectPropertyName. The `unused` inspection is left on: what it greys
+        // out is a key nothing calls
+        appendLine(
+            "@file:Suppress(\"RedundantVisibilityModifier\", \"RemoveRedundantQualifierName\", " +
+                "\"ObjectPropertyName\", \"PrivatePropertyName\", \"PropertyName\", \"FunctionName\", \"ClassName\")"
+        )
         appendLine()
         appendLine("package $packageName")
         appendLine()
         appendLine("/**")
-        appendLine(" * Type-safe accessors for translations.")
+        appendLine(" * Type-safe accessors for translations, in the current language.")
         appendLine(" *")
         appendLine(" * This file is auto-generated. Do not edit manually.")
         appendLine(" *")
         appendLine(" * Usage:")
         appendLine(" * ```kotlin")
-        appendLine(" * $objectName.Action.save()           // Get translation")
+        appendLine(" * $objectName.Action.save()                     // in the current language")
+        appendLine(" * $objectName.inLanguage(\"pl\").Action.save()     // in Polish, whatever the current language is")
         appendLine(" * io.github.octaviusframework.i18n.core.OctaviusI18n.currentLanguage = \"en\"  // Switch language globally")
         appendLine(" * ```")
         appendLine(" */")
-        appendLine("public object $objectName {")
+        appendLine("public object $objectName : $accessorsName(::___current) {")
         indentLevel++
-
         appendLine()
-        appendLine("private val ___registry = mutableMapOf<kotlin.String, io.github.octaviusframework.i18n.core.TranslationData>()")
+        appendLine("/**")
+        appendLine(" * The translations in [language], found as the current language is, without changing the current language:")
+        appendLine(" * for a text in another language than the current one, as a server answering each user in theirs needs.")
+        appendLine(" * Every code that finds one language gives the same object.")
+        appendLine(" */")
+        appendLine("public fun inLanguage(language: kotlin.String): $accessorsName = ___find(language).___accessors")
+        indentLevel--
+        appendLine("}")
         appendLine()
 
-        // Init block
-        appendLine("init {")
+        appendLine("/** The accessors of [$objectName] in one language: a property per group of keys, a function per key. */")
+        appendLine("public open class $accessorsName internal constructor(private val ___data: () -> $interfaceName) {")
         indentLevel++
-        allLangs.forEach { lang ->
-            val langPascal = toPascalCase(lang)
-            builder.appendLine("        ___registry[\"$lang\"] = ${objectName}Translations$langPascal")
+        appendLine()
+        // A property, so no key, which becomes a function or a group, can take its name
+        appendLine("/** The number format of the language, the one counts are written in, for writing another number. */")
+        appendLine("public val numberFormat: io.github.octaviusframework.i18n.core.NumberFormat")
+        indentLevel++
+        appendLine("get() = ___data().numberFormat")
+        indentLevel--
+        appendLine()
+
+        val root = Group()
+        for (key in translations.keys) {
+            val segments = key.path.split('.')
+            var group = root
+            for (segment in segments.dropLast(1)) {
+                group = group.groups.getOrPut(segment) { Group() }
+            }
+            group.keys[segments.last()] = key
+        }
+        generateGroup(root, "", fallback)
+
+        indentLevel--
+        appendLine("}")
+        appendLine()
+
+        // No key or placeholder can be named `___…`: accessor names drop leading `_`, and an argument starts with a letter
+        // A branch per language, so finding one loads that language's object and no other
+        appendLine("/** The translations of the language whose code, in lower case with `-` between its parts, is [code]. */")
+        appendLine("private fun ___language(code: kotlin.String): $interfaceName? = when (code) {")
+        indentLevel++
+        for (lang in translations.languages) {
+            appendLine("\"${escapeString(languageCode(lang))}\" -> $interfaceName${toPascalCase(lang)}")
+        }
+        appendLine("else -> null")
+        indentLevel--
+        appendLine("}")
+        appendLine()
+
+        appendLine("/** The translations of [code], or of the code with its last part cut off; case and `_` or `-` do not matter. */")
+        appendLine("private fun ___lookup(code: kotlin.String): $interfaceName? {")
+        indentLevel++
+        appendLine("___language(code)?.let { return it }")
+        appendLine("var shorter = code.lowercase().replace('_', '-')")
+        appendLine("while (true) {")
+        indentLevel++
+        appendLine("___language(shorter)?.let { return it }")
+        appendLine("val cut = shorter.lastIndexOf('-')")
+        appendLine("if (cut < 0) return null")
+        appendLine("shorter = shorter.substring(0, cut)")
+        indentLevel--
+        appendLine("}")
+        indentLevel--
+        appendLine("}")
+        appendLine()
+
+        appendLine("/** The translations of [language], or of the fallback language. */")
+        appendLine("private fun ___find(language: kotlin.String): $interfaceName =")
+        indentLevel++
+        appendLine("___lookup(language) ?: $interfaceName${toPascalCase(fallback)}")
+        indentLevel--
+        appendLine()
+
+        // Volatile, so a thread that sees the pair sees its fields: Kotlin/Native has no final field semantics, and
+        // without it may publish the pair before its constructor's writes. Threads that race may each find the
+        // language, and whichever pair stays is right for its own code
+        appendLine("/** The current language's code and its translations, as last found, so a code is found again only after a switch. */")
+        appendLine("@kotlin.concurrent.Volatile")
+        appendLine("private var ___found: kotlin.Pair<kotlin.String, $interfaceName>? = null")
+        appendLine()
+
+        appendLine("private fun ___current(): $interfaceName {")
+        indentLevel++
+        appendLine("val code = io.github.octaviusframework.i18n.core.OctaviusI18n.currentLanguage")
+        appendLine("___found?.let { if (it.first == code) return it.second }")
+        appendLine("return ___find(code).also { ___found = kotlin.Pair(code, it) }")
+        indentLevel--
+        appendLine("}")
+        appendLine()
+
+        appendLine("/** The translations of [$objectName] in one language. */")
+        appendLine("internal interface $interfaceName {")
+        indentLevel++
+        appendLine("val numberFormat: io.github.octaviusframework.i18n.core.NumberFormat")
+        appendLine("val ___accessors: $accessorsName")
+        for (key in translations.keys) {
+            appendLine("fun ${memberName(key.path)}(${key.signature.declaration()}): kotlin.String")
         }
         indentLevel--
         appendLine("}")
-        appendLine()
-
-        // Private data accessor
-        appendLine("private val ___data: io.github.octaviusframework.i18n.core.TranslationData")
-        indentLevel++
-        appendLine("get() {")
-        indentLevel++
-        appendLine("val lang = io.github.octaviusframework.i18n.core.OctaviusI18n.currentLanguage")
-        appendLine("return ___registry[lang] ?: ___registry[\"$defaultLang\"] ?: ___registry.values.first()")
-        indentLevel--
-        appendLine("}")
-        indentLevel--
-        appendLine()
-
-        // Type-safe accessors
-        generateEntries(entries, "")
-
-        indentLevel--
-        appendLine("}")
-        appendLine()
 
         return builder.toString()
     }
 
     /**
-     * Recursively emits one accessor function per translation entry, and one nested `object` per
-     * [TranslationEntry.Nested] group, prefixing generated lookup keys with [keyPrefix].
+     * Emits one accessor per key in [group], the group at [path], then one property with an inner class per group
+     * in it, each sorted by name.
      */
-    private fun generateEntries(entries: Map<String, TranslationEntry>, keyPrefix: String) {
-        val sortedEntries = entries.entries.sortedBy { it.key }
-
-        for ((key, entry) in sortedEntries) {
-            val fullKey = if (keyPrefix.isEmpty()) key else "$keyPrefix.$key"
-
-            when (entry) {
-                is TranslationEntry.Simple -> {
-                    val funcName = escapeName(toCamelCase(key))
-                    appendLine("/** `$fullKey` */")
-                    appendLine("public fun $funcName(): kotlin.String = io.github.octaviusframework.i18n.core.OctaviusI18n.lookup(___data, \"$fullKey\")")
-                    appendLine()
-                }
-
-                is TranslationEntry.Parameterized -> {
-                    val funcName = escapeName(toCamelCase(key))
-                    val params = (0 until entry.paramCount).joinToString(", ") { "arg$it: kotlin.Any" }
-                    val args = (0 until entry.paramCount).joinToString(", ") { "arg$it" }
-                    appendLine("/** `$fullKey` - Template: `${entry.value}` */")
-                    appendLine("public fun $funcName($params): kotlin.String = io.github.octaviusframework.i18n.core.OctaviusI18n.lookup(___data, \"$fullKey\", $args)")
-                    appendLine()
-                }
-
-                is TranslationEntry.Plural -> {
-                    val funcName = escapeName(toCamelCase(key))
-                    // Check if plural forms have parameters (besides {0} which is count)
-                    val allForms = entry.forms.values.joinToString(" ")
-                    val extraParams = PARAM_REGEX.findAll(allForms)
-                        .map { it.groupValues[1].toInt() }
-                        .filter { it > 0 }
-                        .toList()
-
-                    if (extraParams.isNotEmpty()) {
-                        val maxParam = extraParams.max()
-                        val params = (1..maxParam).joinToString(", ") { "arg$it: kotlin.Any" }
-                        val args = (1..maxParam).joinToString(", ") { "arg$it" }
-                        appendLine("/** `$fullKey` (plural) */")
-                        appendLine("public fun $funcName(count: kotlin.Int, $params): kotlin.String = io.github.octaviusframework.i18n.core.OctaviusI18n.lookupPlural(___data, io.github.octaviusframework.i18n.core.OctaviusI18n.currentLanguage, \"$fullKey\", count, $args)")
-                        appendLine("/** `$fullKey` (plural - fraction) */")
-                        appendLine("public fun $funcName(count: kotlin.Double, $params): kotlin.String = io.github.octaviusframework.i18n.core.OctaviusI18n.lookupPlural(___data, io.github.octaviusframework.i18n.core.OctaviusI18n.currentLanguage, \"$fullKey\", count, $args)")
-                    } else {
-                        appendLine("/** `$fullKey` (plural) */")
-                        appendLine("public fun $funcName(count: kotlin.Int): kotlin.String = io.github.octaviusframework.i18n.core.OctaviusI18n.lookupPlural(___data, io.github.octaviusframework.i18n.core.OctaviusI18n.currentLanguage, \"$fullKey\", count)")
-                        appendLine("/** `$fullKey` (plural - fraction) */")
-                        appendLine("public fun $funcName(count: kotlin.Double): kotlin.String = io.github.octaviusframework.i18n.core.OctaviusI18n.lookupPlural(___data, io.github.octaviusframework.i18n.core.OctaviusI18n.currentLanguage, \"$fullKey\", count)")
-                    }
-                    appendLine()
-                }
-
-                is TranslationEntry.Nested -> {
-                    val objectName = escapeName(toPascalCase(key))
-                    appendLine("public object $objectName {")
-                    indentLevel++
-                    generateEntries(entry.children, fullKey)
-                    indentLevel--
-                    appendLine("}")
-                    appendLine()
-                }
-            }
+    private fun generateGroup(group: Group, path: String, docLang: String) {
+        for ((name, key) in group.keys) {
+            val shown = (key.messages[docLang] as? Template)?.takeIf { it.hasPlaceholders() }
+            val template = shown?.let { " - Template: `${it.text.replace("*/", "* /")}`" } ?: ""
+            appendLine("/** `${key.path}`$template */")
+            appendLine(
+                "public fun ${escapeName(toCamelCase(name))}(${key.signature.declaration()}): kotlin.String = " +
+                    "___data().${memberName(key.path)}(${key.signature.call()})"
+            )
+            appendLine()
+        }
+        for ((name, child) in group.groups) {
+            val childPath = if (path.isEmpty()) name else "$path.$name"
+            // A class may not share the property's name, and no group's name holds `_`, so no sibling's property can
+            // take the class's
+            val propertyName = escapeName(toPascalCase(name))
+            val className = "${toPascalCase(name)}_Group"
+            val fieldName = "___${toPascalCase(name)}"
+            // Made on first use, so a group's class is loaded only once the group is called. Volatile, as `___found`
+            // is, so no thread sees the group before its reference to the accessors; threads that race may each make
+            // one, and any of them serves
+            appendLine("/** The keys under `$childPath`. */")
+            appendLine("public val $propertyName: $className")
+            indentLevel++
+            appendLine("get() = $fieldName ?: $className().also { $fieldName = it }")
+            indentLevel--
+            appendLine()
+            appendLine("@kotlin.concurrent.Volatile")
+            appendLine("private var $fieldName: $className? = null")
+            appendLine()
+            appendLine("public inner class $className internal constructor() {")
+            indentLevel++
+            generateGroup(child, childPath, docLang)
+            indentLevel--
+            appendLine("}")
+            appendLine()
         }
     }
+}
+
+/**
+ * The name of [path]'s function in the translations interface: its accessor's name prefixed with the groups
+ * it is nested in, such as `Legion_Orders_march`.
+ */
+internal fun memberName(path: String): String {
+    val segments = path.split('.')
+    val name = (segments.dropLast(1).map { toPascalCase(it) } + toCamelCase(segments.last())).joinToString("_")
+    return escapeName(name)
 }

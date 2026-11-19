@@ -1,26 +1,46 @@
 {
   "hello": "Hello",
-  "welcome": "Welcome {0}",
+  "welcome": "Welcome {name}",
   "users": {
     "active": "Active users",
     "count": {
-      "_one": "{0} user",
-      "_other": "{0} users"
+      "$plural": "count",
+      "=0": "No users",
+      "one": "{count} user",
+      "other": "{count} users"
     },
     "purchased": {
-      "_one": "{1} bought {0} item",
-      "_other": "{1} bought {0} items"
+      "$plural": "count",
+      "one": "{name} bought {count} item",
+      "other": "{name} bought {count} items"
+    },
+    "joined": "{name} joined",
+    "invited": {
+      "$plural": "count",
+      "=0": "{name} invited nobody",
+      "one": "{name} invited {count} friend",
+      "other": "{name} invited {count} friends"
+    },
+    "finished": {
+      "$ordinal": "place",
+      "one": "{name} finished {place}st",
+      "two": "{name} finished {place}nd",
+      "few": "{name} finished {place}rd",
+      "other": "{name} finished {place}th"
     }
   },
   "composition": {
     "bought": {
-      "_one": "{0} man bought {1}",
-      "_other": "{0} men bought {1}"
+      "$plural": "count",
+      "one": "{count} man bought {what}",
+      "other": "{count} men bought {what}"
     },
     "apples": {
-      "_one": "1 apple",
-      "_other": "{0} apples"
+      "$plural": "count",
+      "one": "1 apple",
+      "other": "{count} apples"
     },
-    "sentence": "{0} bought {1}"
-  }
+    "sentence": "{who} bought {what}"
+  },
+  "pay": "Total: {price, number}"
 }

@@ -19,7 +19,7 @@ Contents:
 
 Every file matching `src/**/i18n/*.json` in the generator's `sourceProject` and in all of its subprojects. That
 is `src/main/i18n/` and `src/commonMain/i18n/`, but test source sets too: `src/test/i18n/` goes into the same
-object as `src/main/i18n/`.
+object as `src/main/i18n/`. A generator that finds no file at all stops the build.
 
 Without `sourceProject`, the generator reads the project the plugin is applied to, with its subprojects. A plugin
 applied in the root project therefore reads the whole build.
@@ -49,19 +49,31 @@ plugin in `:camp`.
 ## The language of a file
 
 The file name without `.json` is the language code: `pl.json` is `"pl"`, `pt-BR.json` is `"pt-BR"`. It is matched
-against `OctaviusI18n.currentLanguage` exactly, case included.
+against `OctaviusI18n.currentLanguage` with case and `_` or `-` set aside, and a current language with more parts,
+such as `pl-PL`, finds it too — see [Choosing the Language](choosing-the-language.md#a-language-with-no-file). Two
+files whose codes differ only in case or separator, `pl.json` and `PL.json`, stop the build. A code is letters,
+then parts of letters and digits after `-` or `_`, as `es-419` is; a file named otherwise, such as `en.v2.json`,
+stops the build too.
 
 All files of one language are merged into one tree, object into object, so `Legion.Orders` can come from one
 module and `Legion.Units` from another. Each key has to be in exactly one of them: the same key in two files of
 one language stops the build, and so does a key that is a translation in one file and a group of keys in
 another.
 
-A file that does not parse as JSON, or whose top level is not an object, stops the build too.
+A file that is empty, does not parse as JSON, or whose top level is not an object, stops the build too. A file
+with no keys yet holds `{}`.
 
 ## From JSON to Kotlin
 
-An object becomes a Kotlin `object`, a string becomes a function returning `String`, and an object made only of
-plural forms becomes a plural function — see [Plurals](plurals.md).
+A string becomes a function returning `String`. An object with a `$plural`, `$ordinal` or `$select` key is one
+translation too, which chooses its text — see [Plurals](plurals.md) and [Choices](choices.md). Every other object is a group
+of keys and becomes a property of the group it is in, through which its own keys are called. The property holds
+an instance of an inner class named after the group with `_Group` appended, so `Tr.Legion` is a
+`TrAccessors.Legion_Group`. An empty group generates nothing.
+
+Any other value stops the build, as a key or as a branch of a choice: a number, `true`, `false`, `null` or an
+array. A number shown as text is written as a string, `"753"`, and a translation not written yet is left out
+rather than set to `null`, so the build names the language that lacks it.
 
 ```json
 {
@@ -85,42 +97,60 @@ Tr.Legion.SiegeEngines.heavyBallista()   // "Ciężka balista"
 Tr.Legion.Gates.`in`()                   // "Wejście"
 ```
 
-Objects are named in PascalCase and functions in camelCase, with `_` and `-` separating words; every other letter
+Groups are named in PascalCase and functions in camelCase, with `_` and `-` separating words; every other letter
 is kept as written. A Kotlin keyword is escaped with backticks.
+
+With `_` and `-` set aside, a name starts with a letter and holds only letters and digits, of any alphabet:
+`centurion_2` is `centurion2()`, and `404` or `night watch` stops the build. So do two names in one group that
+become one Kotlin name, such as `siege_engines` and `SiegeEngines`, a key named `toString` or `hashCode`, which
+every Kotlin object has, and a key named `inLanguage` at the top level, where it is
+[another language](choosing-the-language.md#another-language).
 
 Accessors are functions, not properties. Each call reads the current language, so the same line returns another
 language after a switch.
 
 ## Placeholders
 
-`{0}`, `{1}`, … in a string make its function take one `Any` parameter per index, up to the highest one used.
-Each argument is inserted with `toString()`.
+A name in braces is a placeholder, and its function takes an `Any` parameter of that name, in backticks if it is
+a Kotlin keyword. Each argument is inserted with `toString()`, except a number: a count, which a `$plural` or a
+`$ordinal` chooses by, or an argument marked `{name, number}`. A number's parameter is a `Number`, and it is
+written in the language's number format — see [Plurals](plurals.md#how-a-count-is-written).
 
 ```json
-"greeting": "Ave, {0}! Witaj w legionie {1}."
+"greeting": "Ave, {name}! Witaj w legionie {legion}."
 ```
 
 ```kotlin
-Tr.Legion.greeting("Marcus", "IX")   // "Ave, Marcus! Witaj w legionie IX."
+Tr.Legion.greeting(name = "Marcus", legion = "IX")   // "Ave, Marcus! Witaj w legionie IX."
+Tr.Legion.greeting("IX", "Marcus")                   // the same
 ```
 
-- A gap still counts: `"{0} i {2}"` takes three arguments, and the second one is never shown.
-- Only a number in braces is a placeholder. `{name}` is text and stays as written; a numbered one cannot be
-  escaped, so a translation cannot show a literal `{0}`.
-- An argument is inserted as it is. An argument that itself contains `{1}` is not expanded.
+- **The parameters do not follow the text.** They come in alphabetical order, so `greeting` is
+  `greeting(legion: Any, name: Any)` in every language, whatever order a translation puts them in. Arguments a
+  [choice](choices.md) chooses by come before the rest.
+- A name starts with a letter, followed by letters, digits and `_`. Anything else in braces is text, such as
+  `{ name }` or `{_x}`, except a number, `{0}`, and a name with anything after a comma but `number`, such as
+  `{price, numbr}`: both stop the build.
+- A placeholder cannot be escaped, so a translation cannot show a literal `{name}`.
+- An argument is inserted as it is. An argument that itself contains `{legion}` is not expanded.
 
 ## One key, every language
 
-A key is one function for all languages, so **every language must have every key, in the same shape**: a string
-in all of them or a plural in all of them, using the same placeholders. The order of the placeholders is free,
-and so, in a plural, is the count; the forms of a plural are each language's own.
+A key is one function for all languages, so **every language must have every key**, and the function takes every
+argument that any language uses. Beyond that, each language writes the key its own way: a plain string in one, a
+plural or a [choice](choices.md) in another, with the placeholders in any order.
+
+**An argument that is only inserted into the text has to be in every language.** One that a language leaves out is
+almost always a placeholder forgotten in translation. An argument that chooses, the count of a plural or the
+argument of a `$select`, may be missing from a language that does not need the choice, and a language may insert
+a count without choosing by it, as in `"{count} コホート"`.
 
 Anything else stops the build, with every problem listed at once:
 
 ```
 > Problems in the translation files:
   - en has no `Legion.Orders.retreat`
-  - `Legion.greeting` is not the same in every language: a string using {0}, {1} in en; a string using {0} in pl
+  - `Legion.greeting` uses {legion} in en but not in pl
 ```
 
 The check covers everything a generator reads. A generator in the root project reads every module, so every

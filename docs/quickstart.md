@@ -77,10 +77,11 @@ Each generator produces one object. All four options are optional:
     },
     "Units": {
       "cohort": {
-        "_one":   "{0} kohorta",
-        "_few":   "{0} kohorty",
-        "_many":  "{0} kohort",
-        "_other": "{0} kohorty"
+        "$plural": "count",
+        "one":   "{count} kohorta",
+        "few":   "{count} kohorty",
+        "many":  "{count} kohort",
+        "other": "{count} kohorty"
       }
     }
   }
@@ -98,16 +99,17 @@ Each generator produces one object. All four options are optional:
     },
     "Units": {
       "cohort": {
-        "_one":   "{0} cohort",
-        "_other": "{0} cohorts"
+        "$plural": "count",
+        "one":   "{count} cohort",
+        "other": "{count} cohorts"
       }
     }
   }
 }
 ```
 
-The file name is the language. Nested objects become nested Kotlin objects, and `cohort` is a plural key — see
-[Plurals](plurals.md).
+The file name is the language. Nested objects become groups of keys, called as `Tr.Legion.Orders`, and `cohort`
+is a plural key — see [Plurals](plurals.md).
 
 ## 4. Build and Call
 
@@ -136,8 +138,8 @@ Each generator is a task named `generateI18nAccessors` followed by the generator
 capitalised — `generateI18nAccessorsMain` above. It writes to `build/generated/i18n/<generator name>` and clears
 that directory before every run, so a renamed object or a dropped language leaves nothing behind.
 
-Before writing anything, it checks the files against each other. A key that one language lacks, or that is a
-string in one language and a plural in another, stops the build with a list of every such problem — see
+Before writing anything, it checks the files against each other. A key that one language lacks, or a placeholder
+that one language leaves out, stops the build with a list of every such problem — see
 [Translation Files](translation-files.md#one-key-every-language).
 
 The directory is added to the `main` source set of a Kotlin JVM project, or to `commonMain` of a Kotlin
@@ -146,5 +148,6 @@ Multiplatform one. A project with neither Kotlin plugin still gets the task, but
 ## Next Steps
 
 - [Translation Files](translation-files.md) — which files a generator reads, naming, placeholders, modules
-- [Plurals](plurals.md) — how a form is chosen, and a rule for a language that has none built in
+- [Plurals](plurals.md) — how a form is chosen, and the CLDR rule each language takes
+- [Choices](choices.md) — a text chosen by gender or any other string, and choices inside choices
 - [Choosing the Language](choosing-the-language.md) — one language for the whole program, and the fallback

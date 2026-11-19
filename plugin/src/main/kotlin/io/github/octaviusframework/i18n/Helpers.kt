@@ -1,40 +1,5 @@
 package io.github.octaviusframework.i18n
 
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-
-/**
- * Represents the type of a translation entry in JSON.
- */
-internal sealed class TranslationEntry {
-    /** Simple text without parameters */
-    data class Simple(val value: String) : TranslationEntry()
-
-    /** Text with parameters {0}, {1}, ... */
-    data class Parameterized(val value: String, val paramCount: Int) : TranslationEntry()
-
-    /** Plural form (one/few/many) */
-    data class Plural(val forms: Map<String, String>) : TranslationEntry()
-
-    /** Nested object */
-    data class Nested(val children: Map<String, TranslationEntry>) : TranslationEntry()
-}
-
-/** JSON object keys recognized as plural form suffixes (e.g. `_one`, `_few`). */
-internal val PLURAL_KEYS = setOf("_zero", "_one", "_two", "_few", "_many", "_other")
-
-/** Matches positional placeholders such as `{0}`, `{1}` inside a translation template. */
-internal val PARAM_REGEX = Regex("""\{(\d+)\}""")
-
-/**
- * Checks if a JSON object is a plural form group rather than a nested object: every key is a
- * plural form suffix and every value a string.
- */
-internal fun isPluralObject(obj: JsonObject): Boolean {
-    return obj.keys.all { it in PLURAL_KEYS } && obj.values.all { it is JsonPrimitive && it.isString }
-}
-
 /**
  * Converts snake_case or kebab-case to PascalCase.
  */
@@ -53,40 +18,47 @@ internal fun toCamelCase(input: String): String {
     return pascal.replaceFirstChar { it.lowercaseChar() }
 }
 
+/** Kotlin's hard keywords, which a name has to be escaped to take. */
+private val KEYWORDS = setOf(
+    "as", "break", "class", "continue", "do", "else", "false", "for", "fun",
+    "if", "in", "interface", "is", "null", "object", "package", "return",
+    "super", "this", "throw", "true", "try", "typealias", "typeof", "val",
+    "var", "when", "while"
+)
+
 /**
  * Escapes the name if it is a Kotlin keyword.
  */
-internal fun escapeName(name: String): String {
-    return if (isKotlinKeyword(name)) "`$name`" else name
-}
+internal fun escapeName(name: String): String = if (name in KEYWORDS) "`$name`" else name
 
 /**
- * Checks if the name is a reserved Kotlin keyword.
+ * A language code in the one spelling the plugin compares codes by: lower case, with `-` between its parts, so
+ * `pt_BR` and `PT-br` are both `pt-br`.
  */
-internal fun isKotlinKeyword(name: String): Boolean {
-    val keywords = setOf(
-        "as", "break", "class", "continue", "do", "else", "false", "for", "fun",
-        "if", "in", "interface", "is", "null", "object", "package", "return",
-        "super", "this", "throw", "true", "try", "typealias", "typeof", "val",
-        "var", "when", "while"
-    )
-    return name in keywords
-}
+internal fun languageCode(code: String): String = code.lowercase().replace('_', '-')
 
 /**
- * Recursively merges [source] into [target] in place. Nested JSON objects are merged
- * key by key instead of being replaced wholesale, so translations split across multiple
- * files can contribute to the same nested structure.
+ * What [find] gives for [code] in [languageCode]'s spelling, or for that code with its last part cut off, as many
+ * times as it has parts, so `en-US` finds `en`; the generated lookup finds a file the same way.
  */
-internal fun mergeJsonElements(target: MutableMap<String, JsonElement>, source: JsonObject) {
-    for ((key, sourceValue) in source) {
-        val targetValue = target[key]
-        if (sourceValue is JsonObject && targetValue is JsonObject) {
-            val newTarget = targetValue.toMutableMap()
-            mergeJsonElements(newTarget, sourceValue)
-            target[key] = JsonObject(newTarget)
-        } else {
-            target[key] = sourceValue
-        }
+internal fun <T : Any> findByLanguageCode(code: String, find: (String) -> T?): T? {
+    var shorter = languageCode(code)
+    while (true) {
+        find(shorter)?.let { return it }
+        val cut = shorter.lastIndexOf('-')
+        if (cut < 0) return null
+        shorter = shorter.substring(0, cut)
     }
+}
+
+/**
+ * Escapes a string for use inside a Kotlin string literal.
+ */
+internal fun escapeString(s: String): String {
+    return s.replace("\\", "\\\\")
+        .replace("\"", "\\\"")
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+        .replace("$", "\\$")
 }

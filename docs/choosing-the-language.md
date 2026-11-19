@@ -16,28 +16,50 @@ Tr.Legion.Orders.march()   // "Marsz!"
 ```
 
 **There is one for the whole program.** It belongs to a global object, not to a thread, a request or a generated
-object: every `Tr` in every module reads the same one, and switching it switches them all. An application that
-has to render two languages at the same time — a server answering users in each — cannot keep them apart with it.
+object: every `Tr` in every module reads the same one, and switching it switches them all. A text in another
+language is asked for by name — see [Another language](#another-language).
 
-Neither it nor `pluralRules` is synchronized. Switch the language from one thread, the UI thread for example, and
-register plural rules at startup.
+A switch is seen by every thread from its next call on, whichever thread makes it. Each call reads the language
+once, so one text is in one language, but texts asked for while the language switches may be in either.
+
+## Another language
+
+`Tr.inLanguage(code)` gives the same keys in the language of `code`, and leaves the current language alone:
+
+```kotlin
+OctaviusI18n.currentLanguage = "en"
+val polish = Tr.inLanguage("pl")
+polish.Legion.Orders.march()   // "Marsz!"
+Tr.Legion.Orders.march()       // "March!"
+```
+
+It finds the language as the current one is found, and keeps it: `polish` translates into Polish whatever the
+current language becomes, so a server can answer each user in their own. Every code that finds one language
+gives the same object, made the first time that language is asked for, so `Tr.inLanguage(user.language)` can be
+called for every text.
+
+A language's translations are loaded the first time it is asked for, as the current language or through
+`inLanguage`. A program that only ever speaks Latin never loads the other files' translations.
 
 ## A language with no file
 
-When the current language has no file, the generated object uses its generator's `fallbackLanguage`, and when
-that has no file either, one of the languages that do:
+A code finds its file in three steps. The code itself, with case and `_` or `-` set aside, so `PL` and `pl_PL`
+find `pl-PL.json` as `pl-PL` does. Then the code with its last part cut off, as many times as it has parts, so
+`pl-PL` finds `pl.json`. Then, when none of these has a file, the generator's `fallbackLanguage`, and when that has
+no file either, one of the languages that do:
 
 ```kotlin
 OctaviusI18n.currentLanguage = "de"   // there is no de.json
 Tr.Legion.Orders.march()             // "March!", from en.json
 ```
 
-Each generator has its own `fallbackLanguage`, so two objects can fall back to different languages.
+Each generator has its own `fallbackLanguage`, so two objects can fall back to different languages. The text that
+stands in is counted by its own language's plural rule, not by the current language's.
 
 The fallback stands in for a whole language, never for a single key: a language that has a file has every key,
 or the build would have stopped. See [Translation Files](translation-files.md#one-key-every-language).
 
 ## Plural rules
 
-`OctaviusI18n.pluralRules` holds the rule for each language, with English and Polish built in. Adding one, and
-what a language without one is counted by, are in [Plurals](plurals.md#a-rule-of-your-own).
+Each language's plural rule is CLDR's, compiled into its generated file. Which rule a file's language code takes is
+in [Plurals](plurals.md#which-rule-a-language-takes).

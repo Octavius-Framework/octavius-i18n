@@ -10,10 +10,12 @@ kotlin {
         browser()
         nodejs()
     }
+    @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
     wasmJs {
         browser()
         nodejs()
     }
+    @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
     wasmWasi {
         nodejs()
     }
@@ -27,6 +29,12 @@ kotlin {
     iosX64()
     iosArm64()
     iosSimulatorArm64()
+
+    sourceSets {
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+        }
+    }
 }
 
 repositories {
