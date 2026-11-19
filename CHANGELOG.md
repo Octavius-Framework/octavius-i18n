@@ -63,6 +63,12 @@
   Parameters come in alphabetical order, whatever order a translation puts its placeholders in, with the
   arguments that choose first. A translation that showed a literal `{word}` gets a parameter for it.
 
+- **[BREAKING]** A translation is a string or an object with `$plural`, `$ordinal` or `$select`, and any other
+  value stops the build, as a key or as a branch: a number, `true`, `false`, `null` or an array. Each became its
+  JSON text, so `"triumph": null` showed `null` and `"ranks": ["hastati", "principes"]` showed
+  `["hastati","principes"]`. A number shown as text is written as a string, `"753"`. See
+  [Translation Files](docs/translation-files.md#from-json-to-kotlin).
+
 - **[BREAKING]** Each language's translations are compiled into a Kotlin object with one function per key, where
   they were maps looked up by key on every call. The generated `{ObjectName}Translations{Lang}` objects are
   `internal` and implement a generated `internal` interface instead of `TranslationData`. A language's object is

@@ -418,6 +418,37 @@ class ReadTranslationsTest {
     }
 
     @Test
+    fun `a number, true, false, null or an array is not a translation, at the top level or in a branch`() {
+        val problems = problems(
+            file(
+                "main/pl.json",
+                """
+                {
+                  "founded": 753,
+                  "victorious": true,
+                  "defeated": false,
+                  "triumph": null,
+                  "ranks": ["hastati", "principes", "triarii"],
+                  "cohort": { "${'$'}plural": "count", "one": null, "other": "{count} kohort" }
+                }
+                """,
+            ),
+        )
+        val translation = "a translation is a string, or an object with `${'$'}plural`, `${'$'}ordinal` or `${'$'}select`"
+        assertEquals(
+            listOf(
+                "`founded` in main/pl.json: `753` is not a translation; $translation",
+                "`victorious` in main/pl.json: `true` is not a translation; $translation",
+                "`defeated` in main/pl.json: `false` is not a translation; $translation",
+                "`triumph` in main/pl.json: `null` is not a translation; $translation",
+                "`ranks` in main/pl.json: an array is not a translation; $translation",
+                "`cohort` in main/pl.json, under `one`: `null` is not a translation; $translation",
+            ),
+            problems,
+        )
+    }
+
+    @Test
     fun `an argument that chooses a plural form in one language and a case in another is reported`() {
         val problems = problems(
             file("main/en.json", """{ "joined": { "${'$'}plural": "who", "other": "joined" } }"""),

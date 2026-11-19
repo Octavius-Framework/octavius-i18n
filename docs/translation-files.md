@@ -71,6 +71,10 @@ of keys and becomes a property of the group it is in, through which its own keys
 an instance of an inner class named after the group with `_Group` appended, so `Tr.Legion` is a
 `TrAccessors.Legion_Group`. An empty group generates nothing.
 
+Any other value stops the build, as a key or as a branch of a choice: a number, `true`, `false`, `null` or an
+array. A number shown as text is written as a string, `"753"`, and a translation not written yet is left out
+rather than set to `null`, so the build names the language that lacks it.
+
 ```json
 {
   "Legion": {

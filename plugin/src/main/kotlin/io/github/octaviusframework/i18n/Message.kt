@@ -1,8 +1,10 @@
 package io.github.octaviusframework.i18n
 
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * One key's translation in one language: a [Template], or a [Plural] or [Select] choosing between messages.
@@ -59,18 +61,20 @@ internal val ARGUMENT = Regex("""[A-Za-z][A-Za-z0-9_]*""")
 internal fun isMessageObject(obj: JsonObject): Boolean = obj.keys.any { it.startsWith('$') }
 
 /**
- * Reads [element] as a message, adding to [problems] everything that keeps it from being one.
- * Returns null when it cannot be read.
+ * Reads [element] as a message, a string or an object with a discriminator, adding to [problems] everything that
+ * keeps it from being one. Returns null when it cannot be read.
  */
 internal fun readMessage(element: JsonElement, at: Location, problems: MutableList<String>): Message? {
-    return when {
-        element !is JsonObject -> Template.read((element as? JsonPrimitive)?.content ?: element.toString(), at, problems)
-        isMessageObject(element) -> readChoice(element, at, problems)
-        else -> {
-            problems += at.problem("a branch is a string, or an object with $LISTED")
-            null
-        }
+    val problem = when {
+        element is JsonPrimitive && element.isString -> return Template.read(element.content, at, problems)
+        element is JsonObject && isMessageObject(element) -> return readChoice(element, at, problems)
+        element is JsonObject -> "a branch is a string, or an object with $LISTED"
+        element is JsonArray -> "an array is not a translation; a translation is a string, or an object with $LISTED"
+        // A number, true, false or null
+        else -> "`${element.jsonPrimitive.content}` is not a translation; a translation is a string, or an object with $LISTED"
     }
+    problems += at.problem(problem)
+    return null
 }
 
 private fun readChoice(obj: JsonObject, at: Location, problems: MutableList<String>): Message? {
