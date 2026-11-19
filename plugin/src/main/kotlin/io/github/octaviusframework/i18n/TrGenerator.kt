@@ -18,9 +18,10 @@ internal class TrGenerator(private val packageName: String, private val objectNa
         }
     }
 
-    /** A level of the accessor class: an inner class per group of keys, a function per key. */
+    /** A level of the accessor class: a function per key, and an inner class per group of keys, each by its name. */
     private class Group {
-        val children = sortedMapOf<String, Any>()
+        val keys = sortedMapOf<String, TranslationKey>()
+        val groups = sortedMapOf<String, Group>()
     }
 
     /**
@@ -30,7 +31,8 @@ internal class TrGenerator(private val packageName: String, private val objectNa
      */
     fun generate(translations: Translations, defaultLang: String): String {
         builder.clear()
-        val fallback = findLanguage(defaultLang, translations.languages) ?: translations.languages.first()
+        val byCode = translations.languages.associateBy { languageCode(it) }
+        val fallback = findByLanguageCode(defaultLang) { byCode[it] } ?: translations.languages.first()
         val interfaceName = "${objectName}Translations"
         val accessorsName = "${objectName}Accessors"
 
@@ -88,9 +90,9 @@ internal class TrGenerator(private val packageName: String, private val objectNa
             val segments = key.path.split('.')
             var group = root
             for (segment in segments.dropLast(1)) {
-                group = group.children.getOrPut(segment) { Group() } as Group
+                group = group.groups.getOrPut(segment) { Group() }
             }
-            group.children[segments.last()] = key
+            group.keys[segments.last()] = key
         }
         generateGroup(root, "", fallback)
 
@@ -167,50 +169,45 @@ internal class TrGenerator(private val packageName: String, private val objectNa
     }
 
     /**
-     * Emits one accessor per key in [group], the group at [path], and one property with an inner class per group in
-     * it, sorted by key.
+     * Emits one accessor per key in [group], the group at [path], then one property with an inner class per group
+     * in it, each sorted by name.
      */
     private fun generateGroup(group: Group, path: String, docLang: String) {
-        for ((name, child) in group.children) {
-            when (child) {
-                is Group -> {
-                    val childPath = if (path.isEmpty()) name else "$path.$name"
-                    // A class may not share the property's name, and no group's name holds `_`, so no sibling's
-                    // property can take the class's
-                    val propertyName = escapeName(toPascalCase(name))
-                    val className = "${toPascalCase(name)}_Group"
-                    val fieldName = "___${toPascalCase(name)}"
-                    // Made on first use, so a group's class is loaded only once the group is called. Volatile, as
-                    // `___found` is, so no thread sees the group before its reference to the accessors; threads
-                    // that race may each make one, and any of them serves
-                    appendLine("/** The keys under `$childPath`. */")
-                    appendLine("public val $propertyName: $className")
-                    indentLevel++
-                    appendLine("get() = $fieldName ?: $className().also { $fieldName = it }")
-                    indentLevel--
-                    appendLine()
-                    appendLine("@kotlin.concurrent.Volatile")
-                    appendLine("private var $fieldName: $className? = null")
-                    appendLine()
-                    appendLine("public inner class $className internal constructor() {")
-                    indentLevel++
-                    generateGroup(child, childPath, docLang)
-                    indentLevel--
-                    appendLine("}")
-                    appendLine()
-                }
-
-                is TranslationKey -> {
-                    val shown = (child.messages[docLang] as? Template)?.takeIf { it.hasPlaceholders() }
-                    val template = shown?.let { " - Template: `${it.text.replace("*/", "* /")}`" } ?: ""
-                    appendLine("/** `${child.path}`$template */")
-                    appendLine(
-                        "public fun ${escapeName(toCamelCase(name))}(${child.signature.declaration()}): kotlin.String = " +
-                            "___data().${memberName(child.path)}(${child.signature.call()})"
-                    )
-                    appendLine()
-                }
-            }
+        for ((name, key) in group.keys) {
+            val shown = (key.messages[docLang] as? Template)?.takeIf { it.hasPlaceholders() }
+            val template = shown?.let { " - Template: `${it.text.replace("*/", "* /")}`" } ?: ""
+            appendLine("/** `${key.path}`$template */")
+            appendLine(
+                "public fun ${escapeName(toCamelCase(name))}(${key.signature.declaration()}): kotlin.String = " +
+                    "___data().${memberName(key.path)}(${key.signature.call()})"
+            )
+            appendLine()
+        }
+        for ((name, child) in group.groups) {
+            val childPath = if (path.isEmpty()) name else "$path.$name"
+            // A class may not share the property's name, and no group's name holds `_`, so no sibling's property can
+            // take the class's
+            val propertyName = escapeName(toPascalCase(name))
+            val className = "${toPascalCase(name)}_Group"
+            val fieldName = "___${toPascalCase(name)}"
+            // Made on first use, so a group's class is loaded only once the group is called. Volatile, as `___found`
+            // is, so no thread sees the group before its reference to the accessors; threads that race may each make
+            // one, and any of them serves
+            appendLine("/** The keys under `$childPath`. */")
+            appendLine("public val $propertyName: $className")
+            indentLevel++
+            appendLine("get() = $fieldName ?: $className().also { $fieldName = it }")
+            indentLevel--
+            appendLine()
+            appendLine("@kotlin.concurrent.Volatile")
+            appendLine("private var $fieldName: $className? = null")
+            appendLine()
+            appendLine("public inner class $className internal constructor() {")
+            indentLevel++
+            generateGroup(child, childPath, docLang)
+            indentLevel--
+            appendLine("}")
+            appendLine()
         }
     }
 }

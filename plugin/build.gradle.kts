@@ -10,8 +10,6 @@ kotlin {
 
 repositories {
     mavenCentral()
-    google()
-    gradlePluginPortal()
 }
 
 dependencies {

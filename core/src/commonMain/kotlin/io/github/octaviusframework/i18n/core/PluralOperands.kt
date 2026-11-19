@@ -31,7 +31,7 @@ class PluralOperands private constructor(
         fun of(count: Number): PluralOperands? = of(count.toString())
 
         /** The operands of a number written as [text], such as `1.50` or `1.0E10`, or null when it is not one. */
-        fun of(text: String): PluralOperands? {
+        internal fun of(text: String): PluralOperands? {
             val number = PrintedNumber.of(text) ?: return null
             val shown = number.fraction
             val trimmed = shown.trimEnd('0')

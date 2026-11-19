@@ -40,13 +40,5 @@ internal object CldrNumbers {
      * The format for [language], a file's language code: the code itself, or with its last part cut off until CLDR
      * has it, as `pt-BR` takes `pt`; CLDR's root format when it has none of them.
      */
-    fun formatFor(language: String): CldrNumberFormat {
-        var code = languageCode(language)
-        while (true) {
-            formats[code]?.let { return it }
-            val cut = code.lastIndexOf('-')
-            if (cut < 0) return formats.getValue("und")
-            code = code.substring(0, cut)
-        }
-    }
+    fun formatFor(language: String): CldrNumberFormat = findByLanguageCode(language) { formats[it] } ?: formats.getValue("und")
 }

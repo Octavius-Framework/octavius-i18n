@@ -18,25 +18,18 @@ internal fun toCamelCase(input: String): String {
     return pascal.replaceFirstChar { it.lowercaseChar() }
 }
 
+/** Kotlin's hard keywords, which a name has to be escaped to take. */
+private val KEYWORDS = setOf(
+    "as", "break", "class", "continue", "do", "else", "false", "for", "fun",
+    "if", "in", "interface", "is", "null", "object", "package", "return",
+    "super", "this", "throw", "true", "try", "typealias", "typeof", "val",
+    "var", "when", "while"
+)
+
 /**
  * Escapes the name if it is a Kotlin keyword.
  */
-internal fun escapeName(name: String): String {
-    return if (isKotlinKeyword(name)) "`$name`" else name
-}
-
-/**
- * Checks if the name is a reserved Kotlin keyword.
- */
-internal fun isKotlinKeyword(name: String): Boolean {
-    val keywords = setOf(
-        "as", "break", "class", "continue", "do", "else", "false", "for", "fun",
-        "if", "in", "interface", "is", "null", "object", "package", "return",
-        "super", "this", "throw", "true", "try", "typealias", "typeof", "val",
-        "var", "when", "while"
-    )
-    return name in keywords
-}
+internal fun escapeName(name: String): String = if (name in KEYWORDS) "`$name`" else name
 
 /**
  * A language code in the one spelling the plugin compares codes by: lower case, with `-` between its parts, so
@@ -45,14 +38,13 @@ internal fun isKotlinKeyword(name: String): Boolean {
 internal fun languageCode(code: String): String = code.lowercase().replace('_', '-')
 
 /**
- * The one of [languages] that [code] finds, as the generated lookup finds a file: the code itself, then the code
- * with its last part cut off, as many times as it has parts, so `en-US` finds `en`.
+ * What [find] gives for [code] in [languageCode]'s spelling, or for that code with its last part cut off, as many
+ * times as it has parts, so `en-US` finds `en`; the generated lookup finds a file the same way.
  */
-internal fun findLanguage(code: String, languages: List<String>): String? {
-    val byCode = languages.associateBy { languageCode(it) }
+internal fun <T : Any> findByLanguageCode(code: String, find: (String) -> T?): T? {
     var shorter = languageCode(code)
     while (true) {
-        byCode[shorter]?.let { return it }
+        find(shorter)?.let { return it }
         val cut = shorter.lastIndexOf('-')
         if (cut < 0) return null
         shorter = shorter.substring(0, cut)

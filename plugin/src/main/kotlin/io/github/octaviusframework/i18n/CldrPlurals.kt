@@ -35,13 +35,5 @@ internal class CldrPlurals(kind: PluralKind, file: String, type: String) {
      * has it, as `pt-BR` takes `pt`. Case does not matter, and `_` separates parts as `-` does. Null when CLDR has
      * no rule for any of them.
      */
-    fun ruleFor(language: String): PluralRule? {
-        var code = languageCode(language)
-        while (true) {
-            rules[code]?.let { return it }
-            val cut = code.lastIndexOf('-')
-            if (cut < 0) return null
-            code = code.substring(0, cut)
-        }
-    }
+    fun ruleFor(language: String): PluralRule? = findByLanguageCode(language) { rules[it] }
 }

@@ -56,7 +56,7 @@ class CldrPluralsTest {
             for ((form, text) in PluralRule.texts(entry)) {
                 for (list in text.substringAfter('@', "").split('@').filter { it.isNotBlank() }) {
                     for (sample in samples(list.substringAfter(' '))) {
-                        assertEquals(form, form(rule, PluralOperands.of(sample)!!), "$kind $locale, $sample")
+                        assertEquals(form, form(rule, PluralOperands.of(BigDecimal(sample))!!), "$kind $locale, $sample")
                         checked++
                     }
                 }
@@ -93,13 +93,13 @@ class CldrPluralsTest {
         assertEquals("pt", ordinal("pt-PT")?.locale)
         assertEquals(setOf("other"), ordinal("pl")?.forms)
         assertNull(ordinal("eo"))
-        assertEquals("few", form(ordinal("en")!!, PluralOperands.of("23")!!))
-        assertEquals("other", form(ordinal("en")!!, PluralOperands.of("13")!!))
+        assertEquals("few", form(ordinal("en")!!, PluralOperands.of(23)!!))
+        assertEquals("other", form(ordinal("en")!!, PluralOperands.of(13)!!))
     }
 
     @Test
     fun `brazilian and european portuguese count zero differently`() {
-        val zero = PluralOperands.of("0")!!
+        val zero = PluralOperands.of(0)!!
         assertEquals("one", form(cardinal("pt-BR")!!, zero))
         assertEquals("other", form(cardinal("pt-PT")!!, zero))
     }
