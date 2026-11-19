@@ -40,8 +40,10 @@ class NumberFormatTest {
         val eastern = NumberFormat("\u066B", "\u066C", "\u061C-", 1, 3, 3, (0..9).map { (0x0660 + it).toChar().toString() })
         assertEquals("\u0661\u0662\u066B\u0665", eastern.format(12.5))
         assertEquals("\u061C-\u0665", eastern.format(-5))
-        // Adlam digits lie outside the Basic Multilingual Plane, two UTF-16 units each
-        val adlam = NumberFormat(digits = (0..9).map { "\uD83A" + (0xDD50 + it).toChar() })
+        // Adlam digits lie outside the Basic Multilingual Plane, two UTF-16 units each. Each digit is built from its
+        // two units as chars: Kotlin/JS's incremental cache keeps a string literal as UTF-8, so a lone surrogate in
+        // one comes back as `?`
+        val adlam = NumberFormat(digits = (0..9).map { charArrayOf('\uD83A', (0xDD50 + it).toChar()).concatToString() })
         assertEquals("\uD83A\uDD51\uD83A\uDD50", adlam.format(10))
     }
 
