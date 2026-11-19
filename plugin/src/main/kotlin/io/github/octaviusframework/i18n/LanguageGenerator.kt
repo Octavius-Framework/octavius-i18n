@@ -20,6 +20,15 @@ internal fun languageSource(
     val ruleForms = { kind: PluralKind -> rules[kind]?.forms ?: setOf("other") }
     var writesNumbers = false
     return buildString {
+        // The IDE's inspections, on what the generator writes on purpose: full names no type of the target package
+        // can shadow, `___` functions no key can take, every inserted argument in braces, and CLDR's conditions as
+        // CLDR writes them, some of which repeat a test, as English ordinals do. Overrides, named after keys, are
+        // not checked
+        appendLine(
+            "@file:Suppress(\"RemoveRedundantQualifierName\", \"FunctionName\", \"RemoveCurlyBracesFromTemplate\", " +
+                "\"KotlinConstantConditions\")"
+        )
+        appendLine()
         appendLine("package $packageName")
         appendLine()
         appendLine("/**")

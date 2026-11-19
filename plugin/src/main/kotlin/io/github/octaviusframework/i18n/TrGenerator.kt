@@ -35,11 +35,13 @@ internal class TrGenerator(private val packageName: String, private val objectNa
         val accessorsName = "${objectName}Accessors"
 
         // The IDE's style inspections, on what the generator writes on purpose: `public` for explicit API mode, full
-        // names no type of the target package can shadow, `___` names no key can take, and functions and
-        // properties named after keys. The `unused` inspection is left on: what it greys out is a key nothing calls
+        // names no type of the target package can shadow, `___` names no key can take, functions and properties
+        // named after keys, and `{Group}_Group` classes. A private top-level property is checked as an object's
+        // property is, so `___found` falls to ObjectPropertyName. The `unused` inspection is left on: what it greys
+        // out is a key nothing calls
         appendLine(
             "@file:Suppress(\"RedundantVisibilityModifier\", \"RemoveRedundantQualifierName\", " +
-                "\"ObjectPrivatePropertyName\", \"PrivatePropertyName\", \"PropertyName\", \"FunctionName\")"
+                "\"ObjectPropertyName\", \"PrivatePropertyName\", \"PropertyName\", \"FunctionName\", \"ClassName\")"
         )
         appendLine()
         appendLine("package $packageName")
