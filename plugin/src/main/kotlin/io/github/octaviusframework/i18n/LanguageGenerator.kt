@@ -32,6 +32,10 @@ internal fun languageSource(
         appendLine("    /** The number format of `$lang`, CLDR ${CldrNumbers.version}'s. */")
         appendLine("    override val numberFormat: io.github.octaviusframework.i18n.core.NumberFormat =")
         appendLine("        ${CldrNumbers.formatFor(lang).toKotlin()}")
+        appendLine()
+        appendLine("    /** The accessors of [$objectName] in `$lang`, made the first time [$objectName.inLanguage] gives them. */")
+        appendLine("    override val ___accessors: ${objectName}Accessors")
+        appendLine("        by kotlin.lazy(kotlin.LazyThreadSafetyMode.PUBLICATION) { ${objectName}Accessors { this } }")
         for (key in keys) {
             val message = key.messages.getValue(lang)
             val counts = key.signature.parameters.filter { it.type == "kotlin.Number" }.map { it.argument }.toSet()

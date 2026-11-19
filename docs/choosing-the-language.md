@@ -38,6 +38,9 @@ current language becomes, so a server can answer each user in their own. Every c
 gives the same object, made the first time that language is asked for, so `Tr.inLanguage(user.language)` can be
 called for every text.
 
+A language's translations are loaded the first time it is asked for, as the current language or through
+`inLanguage`. A program that only ever speaks Latin never loads the other files' translations.
+
 ## A language with no file
 
 A code finds its file in three steps. The code itself, with case and `_` or `-` set aside, so `PL` and `pl_PL`

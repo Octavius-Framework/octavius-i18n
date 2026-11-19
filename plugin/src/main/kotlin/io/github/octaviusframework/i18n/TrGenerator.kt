@@ -64,7 +64,7 @@ internal class TrGenerator(private val packageName: String, private val objectNa
         appendLine(" * for a text in another language than the current one, as a server answering each user in theirs needs.")
         appendLine(" * Every code that finds one language gives the same object.")
         appendLine(" */")
-        appendLine("public fun inLanguage(language: kotlin.String): $accessorsName = ___accessors.getValue(___find(language)).value")
+        appendLine("public fun inLanguage(language: kotlin.String): $accessorsName = ___find(language).___accessors")
         indentLevel--
         appendLine("}")
         appendLine()
@@ -97,36 +97,26 @@ internal class TrGenerator(private val packageName: String, private val objectNa
         appendLine()
 
         // No key or placeholder can be named `___…`: accessor names drop leading `_`, and an argument starts with a letter
-        appendLine("/** Each language's translations, by its code in lower case, with `-` between its parts. */")
-        appendLine("private val ___registry: kotlin.collections.Map<kotlin.String, $interfaceName> = mapOf(")
+        // A branch per language, so finding one loads that language's object and no other
+        appendLine("/** The translations of the language whose code, in lower case with `-` between its parts, is [code]. */")
+        appendLine("private fun ___language(code: kotlin.String): $interfaceName? = when (code) {")
         indentLevel++
         for (lang in translations.languages) {
-            appendLine("\"${escapeString(languageCode(lang))}\" to $interfaceName${toPascalCase(lang)},")
+            appendLine("\"${escapeString(languageCode(lang))}\" -> $interfaceName${toPascalCase(lang)}")
         }
-        indentLevel--
-        appendLine(")")
-        appendLine()
-
-        // Made once per language, on the first call that asks for it; two threads racing may each make one, and one stays
-        appendLine("/** Each language's accessors, by its translations, made the first time [$objectName.inLanguage] gives them. */")
-        appendLine("private val ___accessors: kotlin.collections.Map<$interfaceName, kotlin.Lazy<$accessorsName>> =")
-        indentLevel++
-        appendLine("___registry.values.associateWith { translations ->")
-        indentLevel++
-        appendLine("kotlin.lazy(kotlin.LazyThreadSafetyMode.PUBLICATION) { $accessorsName { translations } }")
+        appendLine("else -> null")
         indentLevel--
         appendLine("}")
-        indentLevel--
         appendLine()
 
         appendLine("/** The translations of [code], or of the code with its last part cut off; case and `_` or `-` do not matter. */")
         appendLine("private fun ___lookup(code: kotlin.String): $interfaceName? {")
         indentLevel++
-        appendLine("___registry[code]?.let { return it }")
+        appendLine("___language(code)?.let { return it }")
         appendLine("var shorter = code.lowercase().replace('_', '-')")
         appendLine("while (true) {")
         indentLevel++
-        appendLine("___registry[shorter]?.let { return it }")
+        appendLine("___language(shorter)?.let { return it }")
         appendLine("val cut = shorter.lastIndexOf('-')")
         appendLine("if (cut < 0) return null")
         appendLine("shorter = shorter.substring(0, cut)")
@@ -143,13 +133,28 @@ internal class TrGenerator(private val packageName: String, private val objectNa
         indentLevel--
         appendLine()
 
-        appendLine("private fun ___current(): $interfaceName = ___find(io.github.octaviusframework.i18n.core.OctaviusI18n.currentLanguage)")
+        // Volatile, so a thread that sees the pair sees its fields: Kotlin/Native has no final field semantics, and
+        // without it may publish the pair before its constructor's writes. Threads that race may each find the
+        // language, and whichever pair stays is right for its own code
+        appendLine("/** The current language's code and its translations, as last found, so a code is found again only after a switch. */")
+        appendLine("@kotlin.concurrent.Volatile")
+        appendLine("private var ___found: kotlin.Pair<kotlin.String, $interfaceName>? = null")
+        appendLine()
+
+        appendLine("private fun ___current(): $interfaceName {")
+        indentLevel++
+        appendLine("val code = io.github.octaviusframework.i18n.core.OctaviusI18n.currentLanguage")
+        appendLine("___found?.let { if (it.first == code) return it.second }")
+        appendLine("return ___find(code).also { ___found = kotlin.Pair(code, it) }")
+        indentLevel--
+        appendLine("}")
         appendLine()
 
         appendLine("/** The translations of [$objectName] in one language. */")
         appendLine("internal interface $interfaceName {")
         indentLevel++
         appendLine("val numberFormat: io.github.octaviusframework.i18n.core.NumberFormat")
+        appendLine("val ___accessors: $accessorsName")
         for (key in translations.keys) {
             appendLine("fun ${memberName(key.path)}(${key.signature.declaration()}): kotlin.String")
         }
@@ -172,8 +177,18 @@ internal class TrGenerator(private val packageName: String, private val objectNa
                     // property can take the class's
                     val propertyName = escapeName(toPascalCase(name))
                     val className = "${toPascalCase(name)}_Group"
+                    val fieldName = "___${toPascalCase(name)}"
+                    // Made on first use, so a group's class is loaded only once the group is called. Volatile, as
+                    // `___found` is, so no thread sees the group before its reference to the accessors; threads
+                    // that race may each make one, and any of them serves
                     appendLine("/** The keys under `$childPath`. */")
-                    appendLine("public val $propertyName: $className = $className()")
+                    appendLine("public val $propertyName: $className")
+                    indentLevel++
+                    appendLine("get() = $fieldName ?: $className().also { $fieldName = it }")
+                    indentLevel--
+                    appendLine()
+                    appendLine("@kotlin.concurrent.Volatile")
+                    appendLine("private var $fieldName: $className? = null")
                     appendLine()
                     appendLine("public inner class $className internal constructor() {")
                     indentLevel++

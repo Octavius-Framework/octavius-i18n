@@ -34,10 +34,32 @@ class TrGeneratorTest {
     }
 
     @Test
+    fun `a language's object is reached only through the branch of its code`() {
+        val source = TrGenerator("org.example", "Tr").generate(translations, "en")
+        assertContains(source, "private fun ___language(code: kotlin.String): TrTranslations? = when (code) {\n")
+        assertContains(source, "    \"pl\" -> TrTranslationsPl\n")
+        assertContains(source, "    \"en\" -> TrTranslationsEn\n")
+    }
+
+    private val nested = readTranslations(listOf(file("main/pl.json", """{ "Legion": { "Orders": { "march": "Marsz!" } } }""")))
+
+    @Test
     fun `a group is documented on its property, by its whole path`() {
-        val nested = readTranslations(listOf(file("main/pl.json", """{ "Legion": { "Orders": { "march": "Marsz!" } } }""")))
         val source = TrGenerator("org.example", "Tr").generate(nested, "pl")
-        assertContains(source, "    /** The keys under `Legion`. */\n    public val Legion: Legion_Group = Legion_Group()\n")
-        assertContains(source, "        /** The keys under `Legion.Orders`. */\n        public val Orders: Orders_Group = Orders_Group()\n")
+        assertContains(source, "    /** The keys under `Legion`. */\n    public val Legion: Legion_Group\n")
+        assertContains(source, "        /** The keys under `Legion.Orders`. */\n        public val Orders: Orders_Group\n")
+    }
+
+    @Test
+    fun `a group is made the first time it is called`() {
+        val source = TrGenerator("org.example", "Tr").generate(nested, "pl")
+        assertContains(source, "public val Legion: Legion_Group\n        get() = ___Legion ?: Legion_Group().also { ___Legion = it }\n")
+        assertContains(source, "    @kotlin.concurrent.Volatile\n    private var ___Legion: Legion_Group? = null\n")
+    }
+
+    @Test
+    fun `the current language, as last found, is published through a volatile field`() {
+        val source = TrGenerator("org.example", "Tr").generate(translations, "en")
+        assertContains(source, "@kotlin.concurrent.Volatile\nprivate var ___found: kotlin.Pair<kotlin.String, TrTranslations>? = null\n")
     }
 }

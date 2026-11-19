@@ -65,7 +65,10 @@
 
 - **[BREAKING]** Each language's translations are compiled into a Kotlin object with one function per key, where
   they were maps looked up by key on every call. The generated `{ObjectName}Translations{Lang}` objects are
-  `internal` and implement a generated `internal` interface instead of `TranslationData`.
+  `internal` and implement a generated `internal` interface instead of `TranslationData`. A language's object is
+  loaded the first time that language is asked for, as the current one or through `Tr.inLanguage`, and a group's
+  class the first time the group is called, so a program loads only the languages and groups it uses. The current
+  language's code is matched to its file once per switch, not on every call.
 
 - **[BREAKING]** A count, the argument a `$plural` or a `$ordinal` chooses by, is written in its language's number
   format from CLDR 49, which the plugin carries and compiles into the language's file: its decimal separator, its
