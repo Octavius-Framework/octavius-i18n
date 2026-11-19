@@ -43,7 +43,7 @@
 #### Changed
 
 - **[BREAKING]** A group of keys is a property of the generated `{ObjectName}Accessors` class, holding an instance
-  of its inner class `{Group}Group`, where it was a nested `object`; `Tr` is an instance of that class too. Kotlin
+  of its inner class `{Group}_Group`, where it was a nested `object`; `Tr` is an instance of that class too. Kotlin
   calls such as `Tr.Legion.Orders.march()` compile as before, and Java goes through getters:
   `Tr.INSTANCE.getLegion().getOrders().march()`.
 

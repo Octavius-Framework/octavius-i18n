@@ -67,8 +67,9 @@ with no keys yet holds `{}`.
 
 A string becomes a function returning `String`. An object with a `$plural`, `$ordinal` or `$select` key is one
 translation too, which chooses its text — see [Plurals](plurals.md) and [Choices](choices.md). Every other object is a group
-of keys and becomes a property of the group it is in, through which its own keys are called; an empty one
-generates nothing.
+of keys and becomes a property of the group it is in, through which its own keys are called. The property holds
+an instance of an inner class named after the group with `_Group` appended, so `Tr.Legion` is a
+`TrAccessors.Legion_Group`. An empty group generates nothing.
 
 ```json
 {

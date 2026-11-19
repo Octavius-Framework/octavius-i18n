@@ -140,7 +140,7 @@ private val ANY_FUNCTIONS = setOf("toString", "hashCode")
 /**
  * Adds to [problems] every name in the key [paths] the accessors cannot have: one that is not a Kotlin name, two in
  * one group that are one Kotlin name, such as `fooBar` and `foo_bar`, and a key whose function the generated code
- * has already. A group is a property and an inner class `{Name}Group` of the group it is in, a key a function.
+ * has already. A group is a property of the group it is in, a key a function.
  */
 private fun checkNames(paths: Collection<String>, problems: MutableList<String>) {
     // group path -> Kotlin name in that group -> the paths it is the name of
@@ -166,17 +166,12 @@ private fun checkNames(paths: Collection<String>, problems: MutableList<String>)
                 problems += "`$child` cannot be a key at the top level: its function is `inLanguage`, which the " +
                     "generated object has for another language"
             }
-            val taken = names.getOrPut(group) { linkedMapOf() }
-            for (kotlinName in if (isKey) listOf(name) else listOf(name, "${name}Group")) {
-                taken.getOrPut(kotlinName) { sortedSetOf() } += child
-            }
+            names.getOrPut(group) { linkedMapOf() }.getOrPut(name) { sortedSetOf() } += child
         }
     }
-    // Two groups of one name share their class's name too, and are reported once
-    val reported = mutableSetOf<Set<String>>()
     for (taken in names.values) {
         for ((kotlinName, children) in taken) {
-            if (children.size < 2 || !reported.add(children)) continue
+            if (children.size < 2) continue
             val listed = children.map { "`$it`" }
             problems += listed.dropLast(1).joinToString(", ") + " and " + listed.last() +
                 " are one Kotlin name, `$kotlinName`"

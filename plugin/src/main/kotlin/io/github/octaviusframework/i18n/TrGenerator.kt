@@ -90,7 +90,7 @@ internal class TrGenerator(private val packageName: String, private val objectNa
             }
             group.children[segments.last()] = key
         }
-        generateGroup(root, fallback)
+        generateGroup(root, "", fallback)
 
         indentLevel--
         appendLine("}")
@@ -159,20 +159,25 @@ internal class TrGenerator(private val packageName: String, private val objectNa
         return builder.toString()
     }
 
-    /** Emits one accessor per key in [group] and one property with an inner class per group in it, sorted by key. */
-    private fun generateGroup(group: Group, docLang: String) {
+    /**
+     * Emits one accessor per key in [group], the group at [path], and one property with an inner class per group in
+     * it, sorted by key.
+     */
+    private fun generateGroup(group: Group, path: String, docLang: String) {
         for ((name, child) in group.children) {
             when (child) {
                 is Group -> {
-                    // The property has the group's name; a class of the same name would conflict with it
+                    val childPath = if (path.isEmpty()) name else "$path.$name"
+                    // A class may not share the property's name, and no group's name holds `_`, so no sibling's
+                    // property can take the class's
                     val propertyName = escapeName(toPascalCase(name))
-                    val className = "${toPascalCase(name)}Group"
+                    val className = "${toPascalCase(name)}_Group"
+                    appendLine("/** The keys under `$childPath`. */")
                     appendLine("public val $propertyName: $className = $className()")
                     appendLine()
-                    appendLine("/** The keys under `$name`. */")
                     appendLine("public inner class $className internal constructor() {")
                     indentLevel++
-                    generateGroup(child, docLang)
+                    generateGroup(child, childPath, docLang)
                     indentLevel--
                     appendLine("}")
                     appendLine()

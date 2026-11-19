@@ -32,4 +32,12 @@ class TrGeneratorTest {
         assertContains(source, "/** `greeting` - Template: `Ave, {name}!` */")
         assertContains(source, "___lookup(language) ?: TrTranslationsPl\n")
     }
+
+    @Test
+    fun `a group is documented on its property, by its whole path`() {
+        val nested = readTranslations(listOf(file("main/pl.json", """{ "Legion": { "Orders": { "march": "Marsz!" } } }""")))
+        val source = TrGenerator("org.example", "Tr").generate(nested, "pl")
+        assertContains(source, "    /** The keys under `Legion`. */\n    public val Legion: Legion_Group = Legion_Group()\n")
+        assertContains(source, "        /** The keys under `Legion.Orders`. */\n        public val Orders: Orders_Group = Orders_Group()\n")
+    }
 }

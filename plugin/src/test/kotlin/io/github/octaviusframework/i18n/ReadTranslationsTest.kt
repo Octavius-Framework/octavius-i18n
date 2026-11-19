@@ -148,14 +148,12 @@ class ReadTranslationsTest {
                 "main/pl.json",
                 """{ "Legion": {
                     "siege_engines": { "ballista": "Balista" }, "SiegeEngines": { "onager": "Onager" },
-                    "march_on": "Naprzód!", "marchOn": "Marsz!",
-                    "Camp": { "tower": "Wieża" }, "CampGroup": { "gate": "Brama" }
+                    "march_on": "Naprzód!", "marchOn": "Marsz!"
                 } }""",
             ),
         )
         assertEquals(
             listOf(
-                "`Legion.Camp` and `Legion.CampGroup` are one Kotlin name, `CampGroup`",
                 "`Legion.SiegeEngines` and `Legion.siege_engines` are one Kotlin name, `SiegeEngines`",
                 "`Legion.marchOn` and `Legion.march_on` are one Kotlin name, `marchOn`",
             ),
@@ -170,6 +168,14 @@ class ReadTranslationsTest {
                 "main/pl.json",
                 """{ "march": "Marsz!", "Legion": { "Legion": { "march": "Marsz!" }, "Orders": { "march": "Marsz!" }, "orders": "Rozkazy" } }""",
             ),
+        )
+        assertEquals(emptyList(), problems)
+    }
+
+    @Test
+    fun `a group may be named as a sibling with Group appended`() {
+        val problems = problems(
+            file("main/pl.json", """{ "Legion": { "Camp": { "tower": "Wieża" }, "CampGroup": { "gate": "Brama" } } }"""),
         )
         assertEquals(emptyList(), problems)
     }
