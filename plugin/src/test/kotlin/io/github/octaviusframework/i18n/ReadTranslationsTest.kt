@@ -142,6 +142,18 @@ class ReadTranslationsTest {
     }
 
     @Test
+    fun `a schema named at the top of a file is no key`() {
+        val translations = readTranslations(
+            listOf(
+                file("main/en.json", """{ "${'$'}schema": "https://example.com/translation-file.schema.json", "march": "March!" }"""),
+                file("main/pl.json", """{ "march": "Marsz!" }"""),
+            ),
+        )
+        assertEquals(emptyList(), translations.problems)
+        assertEquals(listOf("march"), translations.keys.map { it.path })
+    }
+
+    @Test
     fun `names that are one Kotlin name in one group are reported`() {
         val problems = problems(
             file(

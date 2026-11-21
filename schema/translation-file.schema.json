@@ -1,0 +1,119 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Octavius i18n translation file",
+  "description": "One language's translations for the Octavius i18n Gradle plugin, checked file by file. What takes more than one file, such as every language having every key, is checked by the build.",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "description": "The JSON Schema an editor checks this file with. The build ignores it.",
+      "type": "string"
+    }
+  },
+  "propertyNames": {
+    "anyOf": [
+      { "const": "$schema" },
+      { "$ref": "#/definitions/plainKey" }
+    ]
+  },
+  "additionalProperties": { "$ref": "#/definitions/entry" },
+  "definitions": {
+    "plainKey": {
+      "description": "A key or a group. A name starting with $ is a choice's discriminator: $plural, $ordinal or $select.",
+      "not": { "pattern": "^\\$" }
+    },
+    "entry": {
+      "description": "A translation, or a group of keys.",
+      "if": {
+        "type": "object",
+        "propertyNames": { "$ref": "#/definitions/plainKey" }
+      },
+      "then": { "$ref": "#/definitions/group" },
+      "else": { "$ref": "#/definitions/translation" }
+    },
+    "group": {
+      "description": "A group of keys, called through a property of its own, as Tr.Legion.march().",
+      "type": "object",
+      "additionalProperties": { "$ref": "#/definitions/entry" }
+    },
+    "translation": {
+      "description": "A text with {name} placeholders, or an object choosing its text by $plural, $ordinal or $select.",
+      "if": { "type": "object", "required": ["$plural"] },
+      "then": { "$ref": "#/definitions/plural" },
+      "else": {
+        "if": { "type": "object", "required": ["$ordinal"] },
+        "then": { "$ref": "#/definitions/ordinal" },
+        "else": {
+          "if": { "type": "object", "required": ["$select"] },
+          "then": { "$ref": "#/definitions/select" },
+          "else": { "type": "string" }
+        }
+      }
+    },
+    "plural": {
+      "description": "Chooses its text by a count: an exact value such as =0 first, then the form the language's CLDR plural rule names, then other.",
+      "type": "object",
+      "required": ["$plural", "other"],
+      "properties": {
+        "$plural": {
+          "description": "The argument counted, a Number.",
+          "allOf": [{ "$ref": "#/definitions/argument" }]
+        },
+        "zero": { "$ref": "#/definitions/translation" },
+        "one": { "$ref": "#/definitions/translation" },
+        "two": { "$ref": "#/definitions/translation" },
+        "few": { "$ref": "#/definitions/translation" },
+        "many": { "$ref": "#/definitions/translation" },
+        "other": { "$ref": "#/definitions/translation" }
+      },
+      "patternProperties": {
+        "^=-?[0-9]+(\\.[0-9]+)?$": { "$ref": "#/definitions/translation" }
+      },
+      "additionalProperties": false
+    },
+    "ordinal": {
+      "description": "Chooses its text by a place in order, as English writes 1st, 2nd, 3rd and 4th: an exact value such as =1 first, then the form the language's CLDR ordinal rule names, then other.",
+      "type": "object",
+      "required": ["$ordinal", "other"],
+      "properties": {
+        "$ordinal": {
+          "description": "The argument holding the place, a Number.",
+          "allOf": [{ "$ref": "#/definitions/argument" }]
+        },
+        "zero": { "$ref": "#/definitions/translation" },
+        "one": { "$ref": "#/definitions/translation" },
+        "two": { "$ref": "#/definitions/translation" },
+        "few": { "$ref": "#/definitions/translation" },
+        "many": { "$ref": "#/definitions/translation" },
+        "other": { "$ref": "#/definitions/translation" }
+      },
+      "patternProperties": {
+        "^=-?[0-9]+(\\.[0-9]+)?$": { "$ref": "#/definitions/translation" }
+      },
+      "additionalProperties": false
+    },
+    "select": {
+      "description": "Chooses its text by a String argument: the branch it names, or other.",
+      "type": "object",
+      "required": ["$select", "other"],
+      "properties": {
+        "$select": {
+          "description": "The argument chosen by, a String.",
+          "allOf": [{ "$ref": "#/definitions/argument" }]
+        },
+        "other": { "$ref": "#/definitions/translation" }
+      },
+      "propertyNames": {
+        "anyOf": [
+          { "const": "$select" },
+          { "$ref": "#/definitions/plainKey" }
+        ]
+      },
+      "additionalProperties": { "$ref": "#/definitions/translation" }
+    },
+    "argument": {
+      "description": "An argument's name: a letter, then letters, digits and _.",
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+    }
+  }
+}
