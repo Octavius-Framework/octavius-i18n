@@ -19,10 +19,20 @@ dependencies {
     testImplementation(kotlin("test"))
     // The runtime's operands, to check the CLDR rules against CLDR's own samples
     testImplementation(project(":i18n-core"))
+    // To check that the translation file's JSON Schema accepts what the plugin reads
+    testImplementation(libs.json.schema.validator)
 }
 
 tasks.test {
     useJUnitPlatform()
+    // The JSON Schema of a translation file, and the example's translation files, which it has to accept
+    val schema = rootProject.file("schema/translation-file.schema.json")
+    val example = rootProject.file("example")
+    inputs.file(schema).withPropertyName("translationSchema").withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.files(fileTree(example) { include("**/src/**/i18n/*.json") })
+        .withPropertyName("exampleTranslations").withPathSensitivity(PathSensitivity.RELATIVE)
+    systemProperty("translationSchema", schema.path)
+    systemProperty("example", example.path)
 }
 
 // Rewrites the plugin's CLDR data, src/main/resources/io/github/octaviusframework/i18n/cldr/, from one CLDR release:

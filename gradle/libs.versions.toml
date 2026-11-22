@@ -3,8 +3,10 @@ kotlin = "2.4.0"
 kotlinx-serialization = "1.11.0"
 dokka = "2.2.0"
 vanniktech-publish = "0.37.0"
+json-schema-validator = "3.0.9"
 [libraries]
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+json-schema-validator = { group = "com.networknt", name = "json-schema-validator", version.ref = "json-schema-validator" }
 
 [plugins]
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

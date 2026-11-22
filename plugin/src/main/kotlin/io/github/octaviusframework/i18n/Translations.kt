@@ -52,7 +52,8 @@ internal fun readTranslations(files: List<TranslationFile>, unreadable: Set<Stri
     val byLang = linkedMapOf<String, MutableMap<String, Pair<JsonElement, String>>>()
     for (file in files) {
         val leaves = byLang.getOrPut(file.lang) { linkedMapOf() }
-        collectLeaves(file.root, "") { key, leaf ->
+        // `$schema` at the top names the file's JSON Schema for an editor, and is no key
+        collectLeaves(JsonObject(file.root - SCHEMA), "") { key, leaf ->
             val earlier = leaves[key]
             if (earlier != null) {
                 problems += "`$key` is defined in both ${earlier.second} and ${file.path}"
@@ -127,6 +128,9 @@ internal fun readTranslations(files: List<TranslationFile>, unreadable: Set<Stri
 
     return Translations(byLang.keys.toList(), keys, rules, problems.distinct())
 }
+
+/** The key at the top of a file that names its JSON Schema, which the build ignores. */
+private const val SCHEMA = "\$schema"
 
 /** A language code as a file is named: letters, then parts of letters and digits after `-` or `_`, as in `es-419`. */
 private val LANGUAGE_CODE = Regex("""[A-Za-z]+(?:[-_][A-Za-z0-9]+)*""")

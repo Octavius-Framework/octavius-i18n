@@ -109,7 +109,8 @@ Each generator produces one object. All four options are optional:
 ```
 
 The file name is the language. Nested objects become groups of keys, called as `Tr.Legion.Orders`, and `cohort`
-is a plural key — see [Plurals](plurals.md).
+is a plural key — see [Plurals](plurals.md). An editor can check each file as it is written against the plugin's
+JSON Schema — see [Translation Files](translation-files.md#a-schema-for-the-editor).
 
 ## 4. Build and Call
 
@@ -147,7 +148,8 @@ Multiplatform one. A project with neither Kotlin plugin still gets the task, but
 
 ## Next Steps
 
-- [Translation Files](translation-files.md) — which files a generator reads, naming, placeholders, modules
+- [Translation Files](translation-files.md) — which files a generator reads, naming, placeholders, modules, and a
+  schema for the editor
 - [Plurals](plurals.md) — how a form is chosen, and the CLDR rule each language takes
 - [Choices](choices.md) — a text chosen by gender or any other string, and choices inside choices
 - [Choosing the Language](choosing-the-language.md) — one language for the whole program, and the fallback

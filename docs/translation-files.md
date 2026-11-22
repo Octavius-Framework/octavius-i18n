@@ -14,6 +14,7 @@ Contents:
 * [From JSON to Kotlin](#from-json-to-kotlin)
 * [Placeholders](#placeholders)
 * [One key, every language](#one-key-every-language)
+* [A schema for the editor](#a-schema-for-the-editor)
 
 ## Which files a generator reads
 
@@ -156,3 +157,34 @@ Anything else stops the build, with every problem listed at once:
 The check covers everything a generator reads. A generator in the root project reads every module, so every
 module has to carry every language that any of them has. Until a translation is ready, its key still has to hold
 something in that language: the text of another one, for instance.
+
+## A schema for the editor
+
+The plugin's JSON Schema of a translation file,
+[`schema/translation-file.schema.json`](../schema/translation-file.schema.json), lets an editor that reads JSON
+Schema, IntelliJ IDEA and VS Code among them, mark a mistake in a file as it is written, where the build finds it
+only when it runs. A file names the schema in `$schema`, at its top:
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/Octavius-Framework/octavius-i18n/v2.1.0/schema/translation-file.schema.json",
+  "Legion": {
+    "Orders": {
+      "march": "Marsz!"
+    }
+  }
+}
+```
+
+The build ignores `$schema` at the top of a file. Anywhere else it is a `$` key like any other, and stops the
+build. The schema at a version's tag describes the files of that version.
+
+The schema checks each file on its own: what a value can be, what makes an object a group, and a `$plural`,
+`$ordinal` or `$select` with the forms it takes and its `other`. What needs the other files or the language is
+left to the build: a key a language lacks, the arguments the languages agree on, the names a key can have in
+Kotlin, the placeholders, and the language's CLDR rule.
+
+As a file is written, the editor offers `$plural`, `$ordinal` and `$select` in an object that can become a key,
+and in a choice the forms it takes.
+
+Instead of `$schema` in every file, an editor can map the schema onto the files in its own settings.
