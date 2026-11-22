@@ -33,7 +33,25 @@
     "group": {
       "description": "A group of keys, called through a property of its own, as Tr.Legion.march().",
       "type": "object",
+      "allOf": [{ "$ref": "#/definitions/choices" }],
       "additionalProperties": { "$ref": "#/definitions/entry" }
+    },
+    "choices": {
+      "$comment": "Only for an editor to offer: an object holding one of these is a choice, so no group or text this applies to holds them, and they check nothing.",
+      "properties": {
+        "$plural": {
+          "description": "Chooses the text by a count, the Number argument named here: an exact value such as =0 first, then the form the language's CLDR plural rule names, then other.",
+          "type": "string"
+        },
+        "$ordinal": {
+          "description": "Chooses the text by a place in order, the Number argument named here, as English writes 1st, 2nd, 3rd and 4th.",
+          "type": "string"
+        },
+        "$select": {
+          "description": "Chooses the text by the String argument named here: the branch it names, or other.",
+          "type": "string"
+        }
+      }
     },
     "translation": {
       "description": "A text with {name} placeholders, or an object choosing its text by $plural, $ordinal or $select.",
@@ -45,7 +63,7 @@
         "else": {
           "if": { "type": "object", "required": ["$select"] },
           "then": { "$ref": "#/definitions/select" },
-          "else": { "type": "string" }
+          "else": { "type": "string", "allOf": [{ "$ref": "#/definitions/choices" }] }
         }
       }
     },

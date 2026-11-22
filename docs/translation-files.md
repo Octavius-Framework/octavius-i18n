@@ -184,4 +184,7 @@ The schema checks each file on its own: what a value can be, what makes an objec
 left to the build: a key a language lacks, the arguments the languages agree on, the names a key can have in
 Kotlin, the placeholders, and the language's CLDR rule.
 
+As a file is written, the editor offers `$plural`, `$ordinal` and `$select` in an object that can become a key,
+and in a choice the forms it takes.
+
 Instead of `$schema` in every file, an editor can map the schema onto the files in its own settings.

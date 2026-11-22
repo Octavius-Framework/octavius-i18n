@@ -7,7 +7,8 @@
 - A JSON Schema of a translation file, `schema/translation-file.schema.json`, lets an editor such as IntelliJ IDEA
   or VS Code mark a mistake in a file as it is typed, where the build found it only when it ran: a number, `null`
   or an array as a translation, a `$plural`, `$ordinal` or `$select` without `other`, a form a plural does not
-  take, an unknown `$` key, or a branch that is a group. A file names it in `"$schema"` at its top, which the build
+  take, an unknown `$` key, or a branch that is a group. It also offers `$plural`, `$ordinal` and `$select` in an
+  object, and in a choice the forms it takes. A file names the schema in `"$schema"` at its top, which the build
   ignores, where it stopped the build as a key no Kotlin name can have. What takes more than one file, such as a
   key a language lacks, is still the build's. See
   [Translation Files](docs/translation-files.md#a-schema-for-the-editor).
