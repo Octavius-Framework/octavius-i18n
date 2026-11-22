@@ -1,25 +1,18 @@
-## Version 2.1.0 (v2.1.0)
+## Version 2.1.0 (v2.1.0) (2026-11-22)
 
 ### Plugin
 
 #### Added
 
-- A JSON Schema of a translation file, `schema/translation-file.schema.json`, lets an editor such as IntelliJ IDEA
-  or VS Code mark a mistake in a file as it is typed, where the build found it only when it ran: a number, `null`
-  or an array as a translation, a `$plural`, `$ordinal` or `$select` without `other`, a form a plural does not
-  take, an unknown `$` key, or a branch that is a group. It also offers `$plural`, `$ordinal` and `$select` in an
-  object, and in a choice the forms it takes. A file names the schema in `"$schema"` at its top, which the build
-  ignores, where it stopped the build as a key no Kotlin name can have. What takes more than one file, such as a
-  key a language lacks, is still the build's. See
-  [Translation Files](docs/translation-files.md#a-schema-for-the-editor).
+- A JSON Schema lets an editor such as IntelliJ IDEA or VS Code check a translation file as it is typed. A file
+  names it in `"$schema"` at its top, which the build ignores.
 
 ### Project
 
 #### Added
 
-- The plugin's tests check the schema against the build: it is a valid draft-07 schema, accepts every translation
-  file of `example/`, and accepts and rejects the same files the build does, for everything a file's shape alone
-  decides.
+- The plugin's tests check that the schema accepts and rejects the same files the build does, the translation
+  files of `example/` among them.
 
 ## Version 2.0.0 (v2.0.0) (2026-11-19) - Interpres
 

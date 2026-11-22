@@ -11,11 +11,11 @@ same: written into the build, so that the running program never goes looking for
 ```kotlin
 plugins {
     kotlin("jvm") version "2.4.0"
-    id("io.github.octavius-framework.i18n") version "2.0.0"
+    id("io.github.octavius-framework.i18n") version "2.1.0"
 }
 
 dependencies {
-    implementation("io.github.octavius-framework:i18n-core:2.0.0")
+    implementation("io.github.octavius-framework:i18n-core:2.1.0")
 }
 ```
 
@@ -24,7 +24,7 @@ dependencies {
 ```kotlin
 plugins {
     kotlin("multiplatform") version "2.4.0"
-    id("io.github.octavius-framework.i18n") version "2.0.0"
+    id("io.github.octavius-framework.i18n") version "2.1.0"
 }
 
 kotlin {
@@ -33,7 +33,7 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation("io.github.octavius-framework:i18n-core:2.0.0")
+            implementation("io.github.octavius-framework:i18n-core:2.1.0")
         }
     }
 }
